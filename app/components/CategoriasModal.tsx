@@ -123,6 +123,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
         frec_sem_min: 1,
         frec_sem_max: 1,
         cada_x_sem: 1,
+        grupo_exclusivo: null,
         esNueva: true,
       },
     ])
