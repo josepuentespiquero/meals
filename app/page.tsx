@@ -91,6 +91,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [popoverDia, setPopoverDia] = useState<number | null>(null)
   const [haySemanaPrev, setHaySemanaPrev] = useState(false)
 
   const router = useRouter()
@@ -262,7 +263,8 @@ export default function Home() {
     if (!userId || !comidaId) return
     setStock((prev) => {
       const newMap = new Map(prev)
-      const newValue = (prev.get(comidaId) ?? 0) + delta
+      const current = prev.get(comidaId) ?? 0
+      const newValue = Math.max(0, current + delta)
       newMap.set(comidaId, newValue)
       supabase
         .from('stock_comidas')
@@ -827,23 +829,87 @@ export default function Home() {
                   </div>
 
                   {dia.categoria_id && (() => {
-                    const total = comidas
-                      .filter((c) => c.categoria_id === dia.categoria_id)
-                      .reduce((sum, c) => sum + (stock.get(c.id) ?? 0), 0)
+                    const comidasCat = comidas.filter((c) => c.categoria_id === dia.categoria_id)
+                    const total = comidasCat.reduce((sum, c) => sum + (stock.get(c.id) ?? 0), 0)
                     if (total === 0) return null
+                    const isOpen = popoverDia === dia.dia_semana
+                    const comidasConStock = comidasCat
+                      .filter((c) => (stock.get(c.id) ?? 0) > 0)
+                      .sort((a, b) => (stock.get(b.id) ?? 0) - (stock.get(a.id) ?? 0))
                     return (
-                      <span style={{
-                        position: 'absolute',
-                        right: '-2rem',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        fontSize: '0.75rem',
-                        fontFamily: 'var(--font-dm-sans)',
-                        fontWeight: 600,
-                        color: total < 0 ? '#dc2626' : 'var(--muted)',
-                      }}>
-                        {total}
-                      </span>
+                      <>
+                        {isOpen && (
+                          <div
+                            onClick={() => setPopoverDia(null)}
+                            style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                          />
+                        )}
+                        <div style={{ position: 'absolute', right: '-2.5rem', top: '50%', transform: 'translateY(-50%)', zIndex: 11 }}>
+                          <button
+                            onClick={() => setPopoverDia(isOpen ? null : dia.dia_semana)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '1.05rem',
+                              fontFamily: 'var(--font-dm-sans)',
+                              fontWeight: 700,
+                              color: total < 0 ? '#dc2626' : 'var(--muted)',
+                              padding: '0.2rem 0.25rem',
+                              lineHeight: 1,
+                            }}
+                          >
+                            {total}
+                          </button>
+                          {isOpen && comidasConStock.length > 0 && (
+                            <div style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: '100%',
+                              marginTop: 4,
+                              background: 'var(--bg)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 8,
+                              minWidth: 200,
+                              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                              zIndex: 20,
+                              overflow: 'hidden',
+                            }}>
+                              {comidasConStock.map((c, i) => {
+                                const qty = stock.get(c.id) ?? 0
+                                const esSeleccionada = dia.comida_id === c.id
+                                return (
+                                  <button
+                                    key={c.id}
+                                    onClick={() => {
+                                      cambiarComida(dia.dia_semana, c.id)
+                                      setPopoverDia(null)
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      width: '100%',
+                                      padding: '0.5rem 0.75rem',
+                                      background: esSeleccionada ? 'var(--accent-bg)' : 'none',
+                                      border: 'none',
+                                      borderBottom: i < comidasConStock.length - 1 ? '1px solid var(--border)' : 'none',
+                                      cursor: 'pointer',
+                                      fontFamily: 'var(--font-dm-sans)',
+                                      fontSize: '0.85rem',
+                                      color: esSeleccionada ? 'var(--accent)' : 'var(--text)',
+                                      textAlign: 'left',
+                                    }}
+                                  >
+                                    <span>{c.nombre}</span>
+                                    <span style={{ fontWeight: 700, color: 'var(--accent)', marginLeft: '1rem' }}>{qty}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )
                   })()}
 
