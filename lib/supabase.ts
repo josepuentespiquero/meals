@@ -12,6 +12,7 @@ export type Categoria = {
   frec_sem_min: number
   frec_sem_max: number
   cada_x_sem: number
+  grupo_exclusivo: number | null
 }
 
 export type SemanaDia = {

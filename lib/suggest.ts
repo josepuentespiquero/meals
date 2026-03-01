@@ -121,6 +121,17 @@ export function generarSugerencias(
       const usos = usosActuales.get(cat.id) ?? 0
       if (usos >= cat.frec_sem_max) return false
 
+      // Grupo exclusivo: si otra categoría del mismo grupo ya fue asignada esta semana, excluir esta
+      if (cat.grupo_exclusivo) {
+        const grupoYaUsado = categorias.some(
+          (otra) =>
+            otra.id !== cat.id &&
+            otra.grupo_exclusivo === cat.grupo_exclusivo &&
+            (usosActuales.get(otra.id) ?? 0) > 0
+        )
+        if (grupoYaUsado) return false
+      }
+
       return true
     })
   }

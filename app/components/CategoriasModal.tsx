@@ -64,6 +64,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
       frec_sem_min: fila.frec_sem_min,
       frec_sem_max: fila.frec_sem_max,
       cada_x_sem: fila.cada_x_sem,
+      grupo_exclusivo: fila.grupo_exclusivo ?? null,
     }
 
     if (fila.esNueva) {
@@ -244,6 +245,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Mín</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Máx</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 60 }}>C/X sem</th>
+                <th style={{ ...thStyle, width: 72 }}>Grupo</th>
                 <th style={{ ...thStyle, width: 68 }}></th>
               </tr>
             </thead>
@@ -311,6 +313,17 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
                         onChange={(e) => updateFila(fila.id, 'cada_x_sem', parseInt(e.target.value) || 1)}
                         disabled={enCurso}
                         style={inputNumStyle}
+                      />
+                    </td>
+                    <td style={tdStyle}>
+                      <input
+                        type="number"
+                        value={fila.grupo_exclusivo ?? ''}
+                        onChange={(e) => updateFila(fila.id, 'grupo_exclusivo', e.target.value ? parseInt(e.target.value) : null)}
+                        disabled={enCurso}
+                        style={{ ...inputNumStyle, width: 56 }}
+                        placeholder="—"
+                        min={1}
                       />
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right' }}>
