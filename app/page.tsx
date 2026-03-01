@@ -22,6 +22,15 @@ function IconSettings({ size = 16 }: { size?: number }) {
   )
 }
 
+function IconRefresh({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 4 23 10 17 10"/>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </svg>
+  )
+}
+
 function formatFechaCorta(iso: string): string {
   const [, m, d] = iso.split('-')
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -50,6 +59,7 @@ export default function Home() {
   const [loading, setLoading] = useState<'cargando' | 'generando' | false>('cargando')
   const [guardando, setGuardando] = useState<number | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Inicializar fechas solo en cliente para evitar hydration mismatch
   useEffect(() => {
@@ -264,6 +274,69 @@ export default function Home() {
     setGuardando(null)
   }
 
+  async function regenerar() {
+    if (!semanaLunes || dias.length === 0) return
+    setRefreshing(true)
+
+    const semanaISO = toISODate(semanaLunes)
+
+    const semanasPrev: string[] = []
+    for (let i = 1; i <= 8; i++) {
+      const prev = new Date(semanaLunes)
+      prev.setDate(prev.getDate() - 7 * i)
+      semanasPrev.push(toISODate(prev))
+    }
+
+    const { data: historialRaw } = await supabase
+      .from('semana_dias')
+      .select('semana_inicio, dia_semana, categoria_id, validado')
+      .in('semana_inicio', semanasPrev)
+
+    const historial = semanasPrev.map((si) => ({
+      semana_inicio: si,
+      dias: (historialRaw ?? [])
+        .filter((d) => d.semana_inicio === si)
+        .map((d) => ({
+          dia_semana: d.dia_semana,
+          categoria_id: d.categoria_id,
+          validado: d.validado,
+        })),
+    }))
+
+    const nuevasSugerencias = recalcularSugerencias(
+      categorias,
+      dias.map((d) => ({
+        dia_semana: d.dia_semana,
+        categoria_id: d.categoria_id,
+        validado: d.validado,
+      })),
+      historial,
+      semanaISO,
+      1 // recalcular desde el primer día
+    )
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const actualizaciones: Promise<any>[] = []
+    const diasActualizados = dias.map((d) => {
+      if (!d.validado && nuevasSugerencias.has(d.dia_semana)) {
+        const newCat = nuevasSugerencias.get(d.dia_semana)!
+        if (d.id) {
+          actualizaciones.push(
+            Promise.resolve(
+              supabase.from('semana_dias').update({ categoria_id: newCat }).eq('id', d.id)
+            )
+          )
+        }
+        return { ...d, categoria_id: newCat }
+      }
+      return d
+    })
+
+    await Promise.all(actualizaciones)
+    setDias(diasActualizados)
+    setRefreshing(false)
+  }
+
   function irSemanaAnterior() {
     setSemanaLunes((prev) => {
       if (!prev) return prev
@@ -332,14 +405,25 @@ export default function Home() {
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Cabecera */}
         <header style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative' }}>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            style={{ ...navBtnStyle, position: 'absolute', top: 0, right: 0 }}
-            aria-label="Configuración de categorías"
-            title="Categorías"
-          >
-            <IconSettings />
-          </button>
+          <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 6 }}>
+            <button
+              onClick={regenerar}
+              disabled={refreshing || !!loading}
+              style={{ ...navBtnStyle, opacity: refreshing ? 0.5 : 1 }}
+              aria-label="Regenerar sugerencias"
+              title="Regenerar sugerencias"
+            >
+              <IconRefresh />
+            </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              style={navBtnStyle}
+              aria-label="Configuración de categorías"
+              title="Categorías"
+            >
+              <IconSettings />
+            </button>
+          </div>
           <h1
             style={{
               fontFamily: 'var(--font-bebas)',
