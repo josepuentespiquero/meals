@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase, type Comida, type Categoria } from '@/lib/supabase'
 
-type FilaEditable = Comida & { modificado?: boolean }
+type FilaEditable = Comida & { esNueva?: boolean; modificado?: boolean }
 
 type Props = {
   userId: string
@@ -35,7 +35,6 @@ function IconDelete({ size = 15 }: { size?: number }) {
 export default function ComidasModal({ userId, categorias, onClose }: Props) {
   const [filas, setFilas] = useState<FilaEditable[]>([])
   const [guardando, setGuardando] = useState<string | null>(null)
-  const [añadiendo, setAñadiendo] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmEliminar, setConfirmEliminar] = useState<string | null>(null)
   const [focoEnNueva, setFocoEnNueva] = useState<string | null>(null)
@@ -69,27 +68,67 @@ export default function ComidasModal({ userId, categorias, onClose }: Props) {
   }
 
   async function cambiarCategoria(id: string, catId: string) {
+    const fila = filas.find((f) => f.id === id)
+    if (!fila) return
+
+    // Actualizar estado local primero
     setFilas((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, categoria_id: catId } : f))
+      prev.map((f) => (f.id === id ? { ...f, categoria_id: catId || null } : f))
     )
-    await supabase.from('comidas').update({ categoria_id: catId }).eq('id', id)
+
+    if (fila.esNueva) {
+      // Fila nueva: solo insertar si hay nombre
+      if (!fila.nombre.trim() || !catId) return
+      setGuardando(id)
+      const { data, error: err } = await supabase
+        .from('comidas')
+        .insert({ nombre: fila.nombre.trim(), categoria_id: catId, user_id: userId })
+        .select()
+        .single()
+      if (err) {
+        setError(err.message)
+      } else if (data) {
+        setFilas((prev) =>
+          sortFilas(prev.map((f) => (f.id === id ? { ...(data as Comida), modificado: false } : f)))
+        )
+      }
+      setGuardando(null)
+    } else {
+      // Fila existente: auto-guardar categoría
+      await supabase.from('comidas').update({ categoria_id: catId || null }).eq('id', id)
+    }
   }
 
   async function guardarFila(fila: FilaEditable) {
+    if (!fila.nombre.trim()) return
     setGuardando(fila.id)
     setError(null)
 
-    const { error: err } = await supabase
-      .from('comidas')
-      .update({ nombre: fila.nombre.trim(), categoria_id: fila.categoria_id ?? null })
-      .eq('id', fila.id)
-
-    if (err) {
-      setError(err.message)
+    if (fila.esNueva) {
+      const { data, error: err } = await supabase
+        .from('comidas')
+        .insert({ nombre: fila.nombre.trim(), categoria_id: fila.categoria_id ?? null, user_id: userId })
+        .select()
+        .single()
+      if (err) {
+        setError(err.message)
+      } else if (data) {
+        setFilas((prev) =>
+          sortFilas(prev.map((f) => (f.id === fila.id ? { ...(data as Comida), modificado: false } : f)))
+        )
+      }
     } else {
-      setFilas((prev) =>
-        sortFilas(prev.map((f) => (f.id === fila.id ? { ...f, modificado: false } : f)))
-      )
+      const { error: err } = await supabase
+        .from('comidas')
+        .update({ nombre: fila.nombre.trim(), categoria_id: fila.categoria_id ?? null })
+        .eq('id', fila.id)
+      if (err) {
+        setError(err.message)
+      } else {
+        setFilas((prev) =>
+          sortFilas(prev.map((f) => (f.id === fila.id ? { ...f, modificado: false } : f)))
+        )
+      }
     }
 
     setGuardando(null)
@@ -121,25 +160,13 @@ export default function ComidasModal({ userId, categorias, onClose }: Props) {
     }
   }, [focoEnNueva, filas])
 
-  async function añadirFila() {
-    setAñadiendo(true)
-    setError(null)
-
-    const catId = categorias[0]?.id ?? null
-    const { data, error: err } = await supabase
-      .from('comidas')
-      .insert({ nombre: '', categoria_id: catId, user_id: userId })
-      .select()
-      .single()
-
-    if (err) {
-      setError(err.message)
-    } else if (data) {
-      setFilas((prev) => [{ ...(data as Comida), modificado: false }, ...prev])
-      setFocoEnNueva(data.id)
-    }
-
-    setAñadiendo(false)
+  function añadirFila() {
+    const tempId = `nueva-${Date.now()}`
+    setFilas((prev) => [
+      { id: tempId, nombre: '', categoria_id: null, user_id: userId, esNueva: true },
+      ...prev,
+    ])
+    setFocoEnNueva(tempId)
   }
 
   return (
@@ -218,19 +245,17 @@ export default function ComidasModal({ userId, categorias, onClose }: Props) {
         <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
           <button
             onClick={añadirFila}
-            disabled={añadiendo}
             style={{
               background: 'none',
               border: '1px dashed var(--border)',
               borderRadius: 6,
               padding: '0.4rem 0.75rem',
-              cursor: añadiendo ? 'default' : 'pointer',
+              cursor: 'pointer',
               fontFamily: 'var(--font-dm-sans)',
               fontSize: '0.85rem',
               color: 'var(--muted)',
               width: '100%',
               textAlign: 'center',
-              opacity: añadiendo ? 0.5 : 1,
             }}
           >
             + Añadir comida
@@ -334,8 +359,8 @@ export default function ComidasModal({ userId, categorias, onClose }: Props) {
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => guardarFila(fila)}
-                            disabled={enCurso || !fila.nombre.trim() || !fila.modificado}
-                            style={{ ...btnBase, color: fila.modificado ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)' }}
+                            disabled={enCurso || !fila.nombre.trim() || (!fila.modificado && !fila.esNueva)}
+                            style={{ ...btnBase, color: (fila.modificado || fila.esNueva) && fila.nombre.trim() ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)' }}
                             title="Guardar"
                           >
                             <IconSave />
