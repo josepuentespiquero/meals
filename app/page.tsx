@@ -169,7 +169,7 @@ export default function Home() {
     supabase
       .from('usuarios')
       .select('guest_key')
-      .eq('uuid', userId)
+      .eq('id', userId)
       .single()
       .then(async ({ data }) => {
         if (data?.guest_key) {
@@ -179,7 +179,7 @@ export default function Home() {
           await supabase
             .from('usuarios')
             .update({ guest_key: newKey })
-            .eq('uuid', userId)
+            .eq('id', userId)
           setGuestKey(newKey)
         }
       })
@@ -675,7 +675,7 @@ export default function Home() {
     await supabase
       .from('usuarios')
       .update({ guest_key: newKey })
-      .eq('uuid', userId)
+      .eq('id', userId)
     setGuestKey(newKey)
   }
 

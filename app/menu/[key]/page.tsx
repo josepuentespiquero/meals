@@ -15,7 +15,7 @@ export default async function MenuPage({
 
   const { data: guestRow } = await supabaseAdmin
     .from('usuarios')
-    .select('uuid')
+    .select('id')
     .eq('guest_key', key)
     .maybeSingle()
 
@@ -27,7 +27,7 @@ export default async function MenuPage({
     )
   }
 
-  const userId = guestRow.uuid
+  const userId = guestRow.id
 
   // Calcular semana actual
   const lunes = getLunes(new Date())
