@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase, type Categoria, type SemanaDia } from '@/lib/supabase'
+import CategoriasModal from './components/CategoriasModal'
 import {
   getLunes,
   toISODate,
@@ -39,6 +40,7 @@ export default function Home() {
   const [dias, setDias] = useState<DiaState[]>([])
   const [loading, setLoading] = useState(true)
   const [guardando, setGuardando] = useState<number | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Inicializar fechas solo en cliente para evitar hydration mismatch
   useEffect(() => {
@@ -310,9 +312,23 @@ export default function Home() {
     <div
       style={{ background: 'var(--bg)', minHeight: '100vh', padding: '2rem 1rem' }}
     >
+      {settingsOpen && (
+        <CategoriasModal
+          onClose={() => setSettingsOpen(false)}
+          onCambioCategorias={(cats) => setCategorias(cats)}
+        />
+      )}
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Cabecera */}
-        <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <header style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative' }}>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            style={{ ...navBtnStyle, position: 'absolute', top: 0, right: 0 }}
+            aria-label="Configuración de categorías"
+            title="Categorías"
+          >
+            ⚙
+          </button>
           <h1
             style={{
               fontFamily: 'var(--font-bebas)',
