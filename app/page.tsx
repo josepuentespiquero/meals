@@ -462,9 +462,10 @@ export default function Home() {
 
           <h1
             style={{
-              fontFamily: 'var(--font-bebas)',
-              fontSize: '3.5rem',
-              letterSpacing: '0.08em',
+              fontFamily: 'var(--font-dm-sans)',
+              fontSize: '2.5rem',
+              fontWeight: 800,
+              letterSpacing: 0,
               color: 'var(--accent)',
               lineHeight: 1,
               marginBottom: '1rem',

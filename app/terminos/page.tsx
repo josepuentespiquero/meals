@@ -2,10 +2,11 @@ import Link from 'next/link'
 
 export default function TerminosPage() {
   const H1: React.CSSProperties = {
-    fontFamily: 'var(--font-bebas)',
-    fontSize: '2.6rem',
+    fontFamily: 'var(--font-dm-sans)',
+    fontSize: '2rem',
+    fontWeight: 800,
     color: '#2d7a2d',
-    letterSpacing: '0.06em',
+    letterSpacing: 0,
     marginBottom: 4,
   }
   const H2: React.CSSProperties = {

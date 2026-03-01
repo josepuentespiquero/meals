@@ -188,9 +188,10 @@ export default function CategoriasModal({ userId, onClose, onCambioCategorias }:
         >
           <h2
             style={{
-              fontFamily: 'var(--font-bebas)',
-              fontSize: '1.8rem',
-              letterSpacing: '0.08em',
+              fontFamily: 'var(--font-dm-sans)',
+              fontSize: '1.4rem',
+              fontWeight: 700,
+              letterSpacing: 0,
               color: 'var(--text)',
               margin: 0,
             }}
@@ -255,7 +256,7 @@ export default function CategoriasModal({ userId, onClose, onCambioCategorias }:
                 <th style={{ ...thStyle, textAlign: 'center', width: 60 }}>Fin sem</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Mín</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Máx</th>
-                <th style={{ ...thStyle, textAlign: 'center', width: 60 }}>C/X sem</th>
+                <th style={{ ...thStyle, textAlign: 'center', width: 60 }}>Cada X sem</th>
                 <th style={{ ...thStyle, width: 72 }}>Grupo</th>
                 <th style={{ ...thStyle, width: 68 }}></th>
               </tr>

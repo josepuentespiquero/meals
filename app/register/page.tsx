@@ -68,9 +68,9 @@ export default function RegisterPage() {
   if (registered) {
     return (
       <div style={{ background: '#f5f5f5', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 16px', fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}>
-        <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '4rem', color: '#2d7a2d', letterSpacing: '0.08em', lineHeight: 1, textAlign: 'center', marginBottom: 32 }}>MEALS</div>
+        <div style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '2.8rem', fontWeight: 800, color: '#2d7a2d', letterSpacing: 0, lineHeight: 1, textAlign: 'center', marginBottom: 32 }}>MEALS</div>
         <div style={{ background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: 12, padding: 32, width: '100%', maxWidth: 420, textAlign: 'center' }}>
-          <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '2rem', color: '#2d7a2d', letterSpacing: '0.06em', marginBottom: 16 }}>Revisa tu email</div>
+          <div style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '1.4rem', fontWeight: 700, color: '#2d7a2d', letterSpacing: 0, marginBottom: 16 }}>Revisa tu email</div>
           <p style={{ color: '#1a1a1a', fontSize: '0.95rem', lineHeight: 1.7, marginBottom: 12 }}>
             Te hemos enviado un correo de confirmación a:
           </p>
@@ -91,7 +91,7 @@ export default function RegisterPage() {
 
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '4rem', color: '#2d7a2d', letterSpacing: '0.08em', lineHeight: 1 }}>MEALS</div>
+        <div style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '2.8rem', fontWeight: 800, color: '#2d7a2d', letterSpacing: 0, lineHeight: 1 }}>MEALS</div>
         <div style={{ color: '#888888', fontSize: '0.85rem', letterSpacing: '2px', textTransform: 'uppercase', marginTop: 4 }}>crear cuenta</div>
       </div>
 
@@ -166,7 +166,7 @@ export default function RegisterPage() {
         <button
           onClick={handleRegister}
           disabled={loading || !consentido}
-          style={{ width: '100%', background: '#2d7a2d', border: 'none', borderRadius: 8, color: '#ffffff', fontFamily: 'var(--font-bebas)', fontSize: '1.2rem', letterSpacing: '0.08em', padding: '12px', cursor: (loading || !consentido) ? 'default' : 'pointer', opacity: (loading || !consentido) ? 0.5 : 1, transition: 'opacity 0.2s' }}
+          style={{ width: '100%', background: '#2d7a2d', border: 'none', borderRadius: 8, color: '#ffffff', fontFamily: 'var(--font-dm-sans)', fontWeight: 700, fontSize: '1rem', letterSpacing: 0, padding: '12px', cursor: (loading || !consentido) ? 'default' : 'pointer', opacity: (loading || !consentido) ? 0.5 : 1, transition: 'opacity 0.2s' }}
         >
           {loading ? 'CREANDO CUENTA...' : 'CREAR CUENTA'}
         </button>

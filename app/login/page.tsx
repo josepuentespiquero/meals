@@ -73,7 +73,7 @@ export default function LoginPage() {
 
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontFamily: 'var(--font-bebas)', fontSize: '4rem', color: '#2d7a2d', letterSpacing: '0.08em', lineHeight: 1 }}>
+        <div style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '2.8rem', fontWeight: 800, color: '#2d7a2d', letterSpacing: 0, lineHeight: 1 }}>
           MEALS
         </div>
         <div style={{ color: '#888888', fontSize: '0.85rem', letterSpacing: '2px', textTransform: 'uppercase', marginTop: 4 }}>
@@ -147,7 +147,7 @@ export default function LoginPage() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          style={{ width: '100%', background: '#2d7a2d', border: 'none', borderRadius: 8, color: '#ffffff', fontFamily: 'var(--font-bebas)', fontSize: '1.2rem', letterSpacing: '0.08em', padding: '12px', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s' }}
+          style={{ width: '100%', background: '#2d7a2d', border: 'none', borderRadius: 8, color: '#ffffff', fontFamily: 'var(--font-dm-sans)', fontWeight: 700, fontSize: '1rem', letterSpacing: 0, padding: '12px', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s' }}
         >
           {loading ? 'ENTRANDO...' : 'ENTRAR'}
         </button>
