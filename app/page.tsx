@@ -364,7 +364,7 @@ export default function Home() {
                   <div style={{ minWidth: 110 }}>
                     <div
                       style={{
-                        fontFamily: 'var(--font-bebas)',
+                        fontFamily: 'var(--font-dm-sans)',
                         fontSize: '1.15rem',
                         letterSpacing: '0.06em',
                         color: esHoy ? 'var(--accent)' : 'var(--text)',
