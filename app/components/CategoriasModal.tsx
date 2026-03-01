@@ -133,6 +133,7 @@ export default function CategoriasModal({ userId, onClose, onCambioCategorias }:
         frec_sem_max: 1,
         cada_x_sem: 1,
         grupo_exclusivo: null,
+        user_id: userId,
         esNueva: true,
       },
     ])
