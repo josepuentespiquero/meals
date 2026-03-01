@@ -33,3 +33,11 @@ export type SemanaDia = {
   created_at: string
   user_id: string
 }
+
+export type StockCategoria = {
+  id: string
+  user_id: string
+  categoria_id: string
+  cantidad: number
+  updated_at: string
+}

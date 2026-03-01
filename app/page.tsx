@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { supabase, type Categoria, type SemanaDia } from '@/lib/supabase'
+import { supabase, type Categoria, type SemanaDia, type StockCategoria } from '@/lib/supabase'
 import CategoriasModal from './components/CategoriasModal'
 import ComidasModal from './components/ComidasModal'
+import InventarioModal from './components/InventarioModal'
 import { useRouter } from 'next/navigation'
 import {
   getLunes,
@@ -43,6 +44,17 @@ function IconRefresh({ size = 16 }: { size?: number }) {
   )
 }
 
+function IconInventario({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+      <line x1="12" y1="22.08" x2="12" y2="12"/>
+    </svg>
+  )
+}
+
 function formatFechaCorta(iso: string): string {
   const [, m, d] = iso.split('-')
   const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -72,6 +84,8 @@ export default function Home() {
   const [guardando, setGuardando] = useState<number | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [comidasOpen, setComidasOpen] = useState(false)
+  const [inventarioOpen, setInventarioOpen] = useState(false)
+  const [stock, setStock] = useState<Map<string, number>>(new Map())
   const [refreshing, setRefreshing] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -103,6 +117,20 @@ export default function Home() {
       .order('nombre')
       .then(({ data }) => {
         if (data) setCategorias(data as Categoria[])
+      })
+  }, [userId])
+
+  // Cargar stock cuando hay userId
+  useEffect(() => {
+    if (!userId) return
+    supabase
+      .from('stock_categorias')
+      .select('categoria_id, cantidad')
+      .eq('user_id', userId)
+      .then(({ data }) => {
+        if (data) setStock(new Map(
+          (data as StockCategoria[]).map((r) => [r.categoria_id, r.cantidad])
+        ))
       })
   }, [userId])
 
@@ -212,6 +240,23 @@ export default function Home() {
     cargarSemana()
   }, [cargarSemana])
 
+  // Ajustar stock de una categoría en delta (±1) y persistir
+  async function actualizarStock(catId: string, delta: number) {
+    if (!userId || !catId) return
+    setStock((prev) => {
+      const newMap = new Map(prev)
+      const newValue = (prev.get(catId) ?? 0) + delta
+      newMap.set(catId, newValue)
+      supabase
+        .from('stock_categorias')
+        .upsert(
+          { user_id: userId, categoria_id: catId, cantidad: newValue, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,categoria_id' }
+        )
+      return newMap
+    })
+  }
+
   // Marcar/desmarcar validado
   async function toggleValidado(diaSemana: number) {
     const dia = dias.find((d) => d.dia_semana === diaSemana)
@@ -224,6 +269,10 @@ export default function Home() {
       .from('semana_dias')
       .update({ validado: nuevoValidado })
       .eq('id', dia.id)
+
+    if (dia.categoria_id) {
+      await actualizarStock(dia.categoria_id, nuevoValidado ? -1 : +1)
+    }
 
     setDias((prev) =>
       prev.map((d) =>
@@ -239,12 +288,22 @@ export default function Home() {
     const dia = dias.find((d) => d.dia_semana === diaSemana)
     if (!dia?.id) return
 
+    const anteriorCatId = dia.categoria_id
+    const anteriorValidado = dia.validado
+
     setGuardando(diaSemana)
 
     await supabase
       .from('semana_dias')
       .update({ categoria_id: nuevaCatId, validado: true })
       .eq('id', dia.id)
+
+    if (nuevaCatId !== anteriorCatId) {
+      if (anteriorValidado && anteriorCatId) await actualizarStock(anteriorCatId, +1)
+      await actualizarStock(nuevaCatId, -1)
+    } else {
+      if (!anteriorValidado) await actualizarStock(nuevaCatId, -1)
+    }
 
     const diasActualizados = dias.map((d) =>
       d.dia_semana === diaSemana
@@ -527,6 +586,17 @@ export default function Home() {
           onClose={() => setComidasOpen(false)}
         />
       )}
+      {inventarioOpen && (
+        <InventarioModal
+          userId={userId ?? ''}
+          categorias={categorias}
+          stock={stock}
+          onStockChange={(catId, newValue) =>
+            setStock((prev) => { const m = new Map(prev); m.set(catId, newValue); return m })
+          }
+          onClose={() => setInventarioOpen(false)}
+        />
+      )}
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Cabecera */}
         <header style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative' }}>
@@ -559,6 +629,14 @@ export default function Home() {
                 <IconRefresh />
               </button>
             )}
+            <button
+              onClick={() => setInventarioOpen(true)}
+              style={navBtnStyle}
+              aria-label="Inventario"
+              title="Inventario"
+            >
+              <IconInventario />
+            </button>
             <button
               onClick={() => setComidasOpen(true)}
               style={navBtnStyle}
@@ -677,6 +755,23 @@ export default function Home() {
                       <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                     ))}
                   </select>
+
+                  {dia.categoria_id && (() => {
+                    const qty = stock.get(dia.categoria_id) ?? 0
+                    return (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontFamily: 'var(--font-dm-sans)',
+                        fontWeight: 600,
+                        color: qty < 0 ? '#dc2626' : 'var(--muted)',
+                        minWidth: 28,
+                        textAlign: 'center',
+                        flexShrink: 0,
+                      }}>
+                        ({qty})
+                      </span>
+                    )
+                  })()}
 
                   <button
                     onClick={() => toggleValidado(dia.dia_semana)}
