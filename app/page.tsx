@@ -38,7 +38,7 @@ export default function Home() {
   const [semanaLunes, setSemanaLunes] = useState<Date | null>(null)
   const [hoyISO, setHoyISO] = useState<string | null>(null)
   const [dias, setDias] = useState<DiaState[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState<'cargando' | 'generando' | false>('cargando')
   const [guardando, setGuardando] = useState<number | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -62,11 +62,10 @@ export default function Home() {
   // Cargar / generar semana cuando cambia semanaLunes o categorías
   const cargarSemana = useCallback(async () => {
     if (categorias.length === 0 || !semanaLunes) return
-    setLoading(true)
-
     const semanaISO = toISODate(semanaLunes)
 
     // Buscar si ya existe la semana en BD
+    setLoading('cargando')
     const { data: diasExistentes } = await supabase
       .from('semana_dias')
       .select('*')
@@ -86,6 +85,9 @@ export default function Home() {
       setLoading(false)
       return
     }
+
+    // No existe la semana → hay que generarla
+    setLoading('generando')
 
     // Obtener historial de semanas anteriores (últimas 8 semanas)
     const semanasPrev: string[] = []
@@ -383,7 +385,7 @@ export default function Home() {
         {/* Lista de días */}
         {loading ? (
           <div style={{ textAlign: 'center', color: 'var(--muted)', padding: '3rem 0' }}>
-            Cargando…
+            {loading === 'generando' ? 'Generando…' : 'Cargando…'}
           </div>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
