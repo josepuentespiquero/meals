@@ -296,6 +296,71 @@ export default function Home() {
     })
 
     await Promise.all(actualizaciones)
+
+    // Si el usuario cambió la categoría (no solo validó la propuesta),
+    // regenerar la semana siguiente si existe, ya que el historial ha cambiado
+    const categoriaAnterior = dia?.categoria_id
+    if (nuevaCatId === categoriaAnterior) {
+      setDias(diasFinales)
+      setGuardando(null)
+      return
+    }
+
+    const semanaSigDate = new Date(semanaLunes)
+    semanaSigDate.setDate(semanaSigDate.getDate() + 7)
+    const semanaSigISO = toISODate(semanaSigDate)
+
+    const { data: diasSig } = await supabase
+      .from('semana_dias')
+      .select('*')
+      .eq('semana_inicio', semanaSigISO)
+      .eq('user_id', userId)
+      .order('dia_semana')
+
+    if (diasSig && diasSig.length > 0) {
+      const semanasPrevSig: string[] = []
+      for (let i = 1; i <= 8; i++) {
+        const prev = new Date(semanaSigDate)
+        prev.setDate(prev.getDate() - 7 * i)
+        semanasPrevSig.push(toISODate(prev))
+      }
+
+      const { data: historialSigRaw } = await supabase
+        .from('semana_dias')
+        .select('semana_inicio, dia_semana, categoria_id, validado')
+        .in('semana_inicio', semanasPrevSig)
+        .eq('user_id', userId)
+
+      const historialSig = semanasPrevSig.map((si) => ({
+        semana_inicio: si,
+        dias: (historialSigRaw ?? [])
+          .filter((d) => d.semana_inicio === si)
+          .map((d) => ({
+            dia_semana: d.dia_semana,
+            categoria_id: d.categoria_id,
+            validado: d.validado,
+          })),
+      }))
+
+      const nuevasSig = generarSugerencias(
+        categorias,
+        diasSig.map((d) => ({ dia_semana: d.dia_semana, categoria_id: d.categoria_id, validado: d.validado })),
+        historialSig,
+        semanaSigISO
+      )
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const actsSig: Promise<any>[] = []
+      for (const d of diasSig) {
+        if (!d.validado && nuevasSig.has(d.dia_semana)) {
+          actsSig.push(
+            supabase.from('semana_dias').update({ categoria_id: nuevasSig.get(d.dia_semana) }).eq('id', d.id)
+          )
+        }
+      }
+      await Promise.all(actsSig)
+    }
+
     setDias(diasFinales)
     setGuardando(null)
   }
@@ -425,6 +490,13 @@ export default function Home() {
     ? toISODate(semanaLunes) >= semanaActualISO
     : false
 
+  const proximaSemanaISO = semanaActualISO
+    ? (() => { const d = new Date(semanaActualISO); d.setDate(d.getDate() + 7); return toISODate(d) })()
+    : null
+  const haySemanaSig = semanaLunes && proximaSemanaISO
+    ? toISODate(semanaLunes) < proximaSemanaISO
+    : false
+
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '2rem 1rem' }}>
       {settingsOpen && (
@@ -508,7 +580,10 @@ export default function Home() {
             >
               {semanaLunes ? formatRangoSemana(semanaLunes) : ''}
             </span>
-            <button onClick={irSemanaSiguiente} style={navBtnStyle} aria-label="Semana siguiente">›</button>
+            {haySemanaSig
+              ? <button onClick={irSemanaSiguiente} style={navBtnStyle} aria-label="Semana siguiente">›</button>
+              : <div style={{ width: 32 }} />
+            }
           </div>
         </header>
 
