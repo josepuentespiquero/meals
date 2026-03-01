@@ -711,6 +711,7 @@ export default function Home() {
                 <li
                   key={dia.dia_semana}
                   style={{
+                    position: 'relative',
                     background: esHoy ? 'var(--accent-bg)' : 'var(--surface)',
                     border: `1px solid ${esHoy ? 'var(--accent)' : 'var(--border)'}`,
                     borderLeft: esHoy ? '4px solid var(--accent)' : `1px solid var(--border)`,
@@ -758,17 +759,19 @@ export default function Home() {
 
                   {dia.categoria_id && (() => {
                     const qty = stock.get(dia.categoria_id) ?? 0
+                    if (qty === 0) return null
                     return (
                       <span style={{
+                        position: 'absolute',
+                        right: '-2rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
                         fontSize: '0.75rem',
                         fontFamily: 'var(--font-dm-sans)',
                         fontWeight: 600,
                         color: qty < 0 ? '#dc2626' : 'var(--muted)',
-                        minWidth: 28,
-                        textAlign: 'center',
-                        flexShrink: 0,
                       }}>
-                        ({qty})
+                        {qty}
                       </span>
                     )
                   })()}
