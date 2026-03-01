@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, type Categoria } from '@/lib/supabase'
 
-type FilaEditable = Categoria & { esNueva?: boolean }
+type FilaEditable = Categoria & { esNueva?: boolean; modificado?: boolean }
 
 type Props = {
   onClose: () => void
@@ -50,7 +50,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
 
   function updateFila(id: string, campo: keyof Categoria, valor: unknown) {
     setFilas((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, [campo]: valor } : f))
+      prev.map((f) => (f.id === id ? { ...f, [campo]: valor, modificado: true } : f))
     )
   }
 
@@ -78,7 +78,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
         setError(err.message)
       } else if (data) {
         setFilas((prev) =>
-          prev.map((f) => (f.id === fila.id ? { ...data as Categoria } : f))
+          prev.map((f) => (f.id === fila.id ? { ...data as Categoria, modificado: false } : f))
         )
       }
     } else {
@@ -87,7 +87,13 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
         .update(payload)
         .eq('id', fila.id)
 
-      if (err) setError(err.message)
+      if (err) {
+        setError(err.message)
+      } else {
+        setFilas((prev) =>
+          prev.map((f) => (f.id === fila.id ? { ...f, modificado: false } : f))
+        )
+      }
     }
 
     setGuardando(null)
@@ -351,7 +357,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
                           <button
                             onClick={() => guardarFila(fila)}
                             disabled={enCurso || !fila.nombre.trim()}
-                            style={{ ...btnBase, color: 'var(--accent)', border: '1px solid var(--border)' }}
+                            style={{ ...btnBase, color: (fila.modificado || fila.esNueva) ? 'var(--accent)' : 'var(--muted)', border: '1px solid var(--border)' }}
                             title="Guardar"
                           >
                             <IconSave />
