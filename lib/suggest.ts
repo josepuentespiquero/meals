@@ -188,8 +188,8 @@ export function generarSugerencias(
 
     const pool = necesarias.length > 0 ? necesarias : poolFinal
 
-    // Elegir la primera en orden alfabético (determinista)
-    const elegida = pool.sort((a, b) => a.nombre.localeCompare(b.nombre))[0]
+    // Elegir aleatoriamente dentro del pool válido
+    const elegida = pool.map((cat) => ({ cat, r: Math.random() })).sort((a, b) => a.r - b.r)[0].cat
 
     resultado.set(dia, elegida.id)
     asignaciones.set(dia, elegida.id)
