@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export type Categoria = {
   id: string
@@ -13,6 +13,7 @@ export type Categoria = {
   frec_sem_max: number
   cada_x_sem: number
   grupo_exclusivo: number | null
+  user_id: string
 }
 
 export type SemanaDia = {
@@ -23,4 +24,5 @@ export type SemanaDia = {
   categoria_id: string | null
   validado: boolean
   created_at: string
+  user_id: string
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase, type Categoria, type SemanaDia } from '@/lib/supabase'
 import CategoriasModal from './components/CategoriasModal'
+import { useRouter } from 'next/navigation'
 import {
   getLunes,
   toISODate,
@@ -60,6 +61,18 @@ export default function Home() {
   const [guardando, setGuardando] = useState<number | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  const router = useRouter()
+
+  // Obtener usuario autenticado
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id ?? null)
+      setUserEmail(user?.email ?? null)
+    })
+  }, [])
 
   // Inicializar fechas solo en cliente para evitar hydration mismatch
   useEffect(() => {
@@ -67,20 +80,23 @@ export default function Home() {
     setHoyISO(toISODate(new Date()))
   }, [])
 
-  // Cargar categorías una sola vez
+  // Cargar categorías cuando hay userId
   useEffect(() => {
+    if (!userId) return
     supabase
       .from('categorias')
       .select('*')
+      .eq('user_id', userId)
       .order('nombre')
       .then(({ data }) => {
         if (data) setCategorias(data as Categoria[])
       })
-  }, [])
+  }, [userId])
 
-  // Cargar / generar semana cuando cambia semanaLunes o categorías
+  // Cargar / generar semana cuando cambia semanaLunes, categorías o userId
   const cargarSemana = useCallback(async () => {
-    if (categorias.length === 0 || !semanaLunes) return
+    if (categorias.length === 0 || !semanaLunes || !userId) return
+
     const semanaISO = toISODate(semanaLunes)
 
     // Buscar si ya existe la semana en BD
@@ -89,6 +105,7 @@ export default function Home() {
       .from('semana_dias')
       .select('*')
       .eq('semana_inicio', semanaISO)
+      .eq('user_id', userId)
       .order('dia_semana')
 
     if (diasExistentes && diasExistentes.length === 7) {
@@ -120,6 +137,7 @@ export default function Home() {
       .from('semana_dias')
       .select('semana_inicio, dia_semana, categoria_id, validado')
       .in('semana_inicio', semanasPrev)
+      .eq('user_id', userId)
 
     const historial = semanasPrev.map((si) => ({
       semana_inicio: si,
@@ -143,6 +161,7 @@ export default function Home() {
       semana_inicio: semanaISO,
       categoria_id: sugerencias.get(diaSemana) ?? null,
       validado: false,
+      user_id: userId,
     }))
 
     // Guardar en BD
@@ -164,7 +183,7 @@ export default function Home() {
     }
 
     setLoading(false)
-  }, [categorias, semanaLunes])
+  }, [categorias, semanaLunes, userId])
 
   useEffect(() => {
     cargarSemana()
@@ -193,29 +212,25 @@ export default function Home() {
 
   // Cambiar categoría manualmente
   async function cambiarCategoria(diaSemana: number, nuevaCatId: string) {
-    if (!semanaLunes) return
+    if (!semanaLunes || !userId) return
     const dia = dias.find((d) => d.dia_semana === diaSemana)
     if (!dia?.id) return
 
     setGuardando(diaSemana)
 
-    // Actualizar este día como validado con la nueva categoría
     await supabase
       .from('semana_dias')
       .update({ categoria_id: nuevaCatId, validado: true })
       .eq('id', dia.id)
 
-    // Estado intermedio con este día actualizado
     const diasActualizados = dias.map((d) =>
       d.dia_semana === diaSemana
         ? { ...d, categoria_id: nuevaCatId, validado: true }
         : d
     )
 
-    // Recalcular días futuros no validados
     const semanaISO = toISODate(semanaLunes)
 
-    // Historial para recálculo
     const semanasPrev: string[] = []
     for (let i = 1; i <= 8; i++) {
       const prev = new Date(semanaLunes)
@@ -227,6 +242,7 @@ export default function Home() {
       .from('semana_dias')
       .select('semana_inicio, dia_semana, categoria_id, validado')
       .in('semana_inicio', semanasPrev)
+      .eq('user_id', userId)
 
     const historial = semanasPrev.map((si) => ({
       semana_inicio: si,
@@ -248,21 +264,20 @@ export default function Home() {
       })),
       historial,
       semanaISO,
-      diaSemana + 1 // recalcular desde el día siguiente
+      diaSemana + 1
     )
 
-    // Actualizar días futuros no validados en BD y estado
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const actualizaciones: Promise<any>[] = []
     const diasFinales = diasActualizados.map((d) => {
       if (d.dia_semana > diaSemana && !d.validado && nuevasSugerencias.has(d.dia_semana)) {
         const newCat = nuevasSugerencias.get(d.dia_semana)!
         if (d.id) {
-          const q = supabase
-            .from('semana_dias')
-            .update({ categoria_id: newCat })
-            .eq('id', d.id)
-          actualizaciones.push(Promise.resolve(q))
+          actualizaciones.push(
+            Promise.resolve(
+              supabase.from('semana_dias').update({ categoria_id: newCat }).eq('id', d.id)
+            )
+          )
         }
         return { ...d, categoria_id: newCat }
       }
@@ -275,7 +290,7 @@ export default function Home() {
   }
 
   async function regenerar() {
-    if (!semanaLunes || dias.length === 0) return
+    if (!semanaLunes || dias.length === 0 || !userId) return
     setRefreshing(true)
 
     const semanaISO = toISODate(semanaLunes)
@@ -291,6 +306,7 @@ export default function Home() {
       .from('semana_dias')
       .select('semana_inicio, dia_semana, categoria_id, validado')
       .in('semana_inicio', semanasPrev)
+      .eq('user_id', userId)
 
     const historial = semanasPrev.map((si) => ({
       semana_inicio: si,
@@ -312,7 +328,7 @@ export default function Home() {
       })),
       historial,
       semanaISO,
-      1 // recalcular desde el primer día
+      1
     )
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -337,6 +353,12 @@ export default function Home() {
     setRefreshing(false)
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
   function irSemanaAnterior() {
     setSemanaLunes((prev) => {
       if (!prev) return prev
@@ -359,14 +381,12 @@ export default function Home() {
   const violaciones = useMemo(() => {
     const set = new Set<number>()
 
-    // solo_fin_semana en día de entre semana
     for (const dia of dias) {
       if (!dia.validado || !dia.categoria_id) continue
       const cat = categorias.find((c) => c.id === dia.categoria_id)
       if (cat?.solo_fin_semana && dia.dia_semana < 6) set.add(dia.dia_semana)
     }
 
-    // frec_sem_max excedido: las apariciones que sobran (ordenadas por día) son violación
     const porCategoria = new Map<string, number[]>()
     for (const dia of dias) {
       if (!dia.validado || !dia.categoria_id) continue
@@ -386,18 +406,16 @@ export default function Home() {
     return set
   }, [dias, categorias])
 
-  // Estas comparaciones solo se evalúan cuando semanaLunes ya está inicializado (cliente)
   const semanaActualISO = hoyISO ? toISODate(getLunes(new Date(hoyISO))) : null
   const esSemanaActual = semanaLunes && semanaActualISO
     ? toISODate(semanaLunes) === semanaActualISO
     : false
 
   return (
-    <div
-      style={{ background: 'var(--bg)', minHeight: '100vh', padding: '2rem 1rem' }}
-    >
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '2rem 1rem' }}>
       {settingsOpen && (
         <CategoriasModal
+          userId={userId ?? ''}
           onClose={() => setSettingsOpen(false)}
           onCambioCategorias={(cats) => setCategorias(cats)}
         />
@@ -405,6 +423,23 @@ export default function Home() {
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Cabecera */}
         <header style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative' }}>
+
+          {/* Usuario + logout — esquina superior izquierda */}
+          <div style={{ position: 'absolute', top: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+            {userEmail && (
+              <span style={{ fontSize: '0.7rem', color: 'var(--muted)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {userEmail}
+              </span>
+            )}
+            <button
+              onClick={handleLogout}
+              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--muted)', fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', padding: '3px 8px', cursor: 'pointer' }}
+            >
+              Salir
+            </button>
+          </div>
+
+          {/* Refresh + Settings — esquina superior derecha */}
           <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 6 }}>
             <button
               onClick={regenerar}
@@ -424,6 +459,7 @@ export default function Home() {
               <IconSettings />
             </button>
           </div>
+
           <h1
             style={{
               fontFamily: 'var(--font-bebas)',
@@ -438,21 +474,8 @@ export default function Home() {
           </h1>
 
           {/* Navegación de semana */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '1rem',
-            }}
-          >
-            <button
-              onClick={irSemanaAnterior}
-              style={navBtnStyle}
-              aria-label="Semana anterior"
-            >
-              ‹
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+            <button onClick={irSemanaAnterior} style={navBtnStyle} aria-label="Semana anterior">‹</button>
             <span
               style={{
                 fontFamily: 'var(--font-dm-sans)',
@@ -465,13 +488,7 @@ export default function Home() {
             >
               {semanaLunes ? formatRangoSemana(semanaLunes) : ''}
             </span>
-            <button
-              onClick={irSemanaSiguiente}
-              style={navBtnStyle}
-              aria-label="Semana siguiente"
-            >
-              ›
-            </button>
+            <button onClick={irSemanaSiguiente} style={navBtnStyle} aria-label="Semana siguiente">›</button>
           </div>
         </header>
 
@@ -504,16 +521,8 @@ export default function Home() {
                     transition: 'opacity 0.15s',
                   }}
                 >
-                  {/* Nombre del día */}
                   <div style={{ minWidth: 110 }}>
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-dm-sans)',
-                        fontSize: '1.15rem',
-                        letterSpacing: '0.06em',
-                        color: esHoy ? 'var(--accent)' : 'var(--text)',
-                      }}
-                    >
+                    <div style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '1.15rem', letterSpacing: '0.06em', color: esHoy ? 'var(--accent)' : 'var(--text)' }}>
                       {DIAS_NOMBRE[dia.dia_semana]}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
@@ -521,7 +530,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Select de categoría */}
                   <select
                     value={dia.categoria_id ?? ''}
                     onChange={(e) => cambiarCategoria(dia.dia_semana, e.target.value)}
@@ -540,17 +548,12 @@ export default function Home() {
                       outline: 'none',
                     }}
                   >
-                    {dia.categoria_id === null && (
-                      <option value="">Sin asignar</option>
-                    )}
+                    {dia.categoria_id === null && <option value="">Sin asignar</option>}
                     {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.nombre}
-                      </option>
+                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                     ))}
                   </select>
 
-                  {/* Check de validación */}
                   <button
                     onClick={() => toggleValidado(dia.dia_semana)}
                     disabled={esCargando || !dia.categoria_id}

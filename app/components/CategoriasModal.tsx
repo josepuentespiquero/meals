@@ -6,6 +6,7 @@ import { supabase, type Categoria } from '@/lib/supabase'
 type FilaEditable = Categoria & { esNueva?: boolean; modificado?: boolean }
 
 type Props = {
+  userId: string
   onClose: () => void
   onCambioCategorias: (cats: Categoria[]) => void
 }
@@ -31,7 +32,7 @@ function IconDelete({ size = 15 }: { size?: number }) {
   )
 }
 
-export default function CategoriasModal({ onClose, onCambioCategorias }: Props) {
+export default function CategoriasModal({ userId, onClose, onCambioCategorias }: Props) {
   const [filas, setFilas] = useState<FilaEditable[]>([])
   const [guardando, setGuardando] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,6 +42,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
     supabase
       .from('categorias')
       .select('*')
+      .eq('user_id', userId)
       .order('nombre')
       .then(({ data, error: err }) => {
         if (err) setError(err.message)
@@ -65,6 +67,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
       frec_sem_max: fila.frec_sem_max,
       cada_x_sem: fila.cada_x_sem,
       grupo_exclusivo: fila.grupo_exclusivo ?? null,
+      user_id: userId,
     }
 
     if (fila.esNueva) {
