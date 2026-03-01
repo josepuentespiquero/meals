@@ -257,7 +257,7 @@ export default function CategoriasModal({ userId, onClose, onCambioCategorias }:
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Mín</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Máx</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 60 }}>Cada X sem</th>
-                <th style={{ ...thStyle, width: 72 }}>Grupo</th>
+                <th style={{ ...thStyle, width: 72 }}>Grupo Exclusión</th>
                 <th style={{ ...thStyle, width: 68 }}></th>
               </tr>
             </thead>

@@ -63,6 +63,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [haySemanaPrev, setHaySemanaPrev] = useState(false)
 
   const router = useRouter()
 
@@ -98,6 +99,16 @@ export default function Home() {
     if (categorias.length === 0 || !semanaLunes || !userId) return
 
     const semanaISO = toISODate(semanaLunes)
+
+    // Verificar si existe la semana anterior (para mostrar/ocultar botón ‹)
+    const semanaPrevDate = new Date(semanaLunes)
+    semanaPrevDate.setDate(semanaPrevDate.getDate() - 7)
+    const { count: countPrev } = await supabase
+      .from('semana_dias')
+      .select('*', { count: 'exact', head: true })
+      .eq('semana_inicio', toISODate(semanaPrevDate))
+      .eq('user_id', userId)
+    setHaySemanaPrev((countPrev ?? 0) > 0)
 
     // Buscar si ya existe la semana en BD
     setLoading('cargando')
@@ -410,6 +421,9 @@ export default function Home() {
   const esSemanaActual = semanaLunes && semanaActualISO
     ? toISODate(semanaLunes) === semanaActualISO
     : false
+  const esSemanaFuturaOActual = semanaLunes && semanaActualISO
+    ? toISODate(semanaLunes) >= semanaActualISO
+    : false
 
   return (
     <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '2rem 1rem' }}>
@@ -441,15 +455,17 @@ export default function Home() {
 
           {/* Refresh + Settings — esquina superior derecha */}
           <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 6 }}>
-            <button
-              onClick={regenerar}
-              disabled={refreshing || !!loading}
-              style={{ ...navBtnStyle, opacity: refreshing ? 0.5 : 1 }}
-              aria-label="Regenerar sugerencias"
-              title="Regenerar sugerencias"
-            >
-              <IconRefresh />
-            </button>
+            {esSemanaFuturaOActual && (
+              <button
+                onClick={regenerar}
+                disabled={refreshing || !!loading}
+                style={{ ...navBtnStyle, opacity: refreshing ? 0.5 : 1 }}
+                aria-label="Regenerar sugerencias"
+                title="Regenerar sugerencias"
+              >
+                <IconRefresh />
+              </button>
+            )}
             <button
               onClick={() => setSettingsOpen(true)}
               style={navBtnStyle}
@@ -476,7 +492,10 @@ export default function Home() {
 
           {/* Navegación de semana */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-            <button onClick={irSemanaAnterior} style={navBtnStyle} aria-label="Semana anterior">‹</button>
+            {haySemanaPrev
+              ? <button onClick={irSemanaAnterior} style={navBtnStyle} aria-label="Semana anterior">‹</button>
+              : <div style={{ width: 32 }} />
+            }
             <span
               style={{
                 fontFamily: 'var(--font-dm-sans)',
