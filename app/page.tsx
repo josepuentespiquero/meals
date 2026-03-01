@@ -45,6 +45,15 @@ function IconRefresh({ size = 16 }: { size?: number }) {
   )
 }
 
+function IconShare({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+  )
+}
+
 function IconInventario({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -93,6 +102,9 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [guestKey, setGuestKey] = useState<string | null>(null)
+  const [popoverShare, setPopoverShare] = useState(false)
+  const [copiado, setCopiado] = useState(false)
   const [popoverDia, setPopoverDia] = useState<number | null>(null)
   const [haySemanaPrev, setHaySemanaPrev] = useState(false)
 
@@ -148,6 +160,28 @@ export default function Home() {
         if (data) setStock(new Map(
           (data as StockComida[]).map((r) => [r.comida_id, r.cantidad])
         ))
+      })
+  }, [userId])
+
+  // Cargar/generar guest_key cuando hay userId
+  useEffect(() => {
+    if (!userId) return
+    supabase
+      .from('usuarios')
+      .select('guest_key')
+      .eq('uuid', userId)
+      .single()
+      .then(async ({ data }) => {
+        if (data?.guest_key) {
+          setGuestKey(data.guest_key)
+        } else {
+          const newKey = crypto.randomUUID()
+          await supabase
+            .from('usuarios')
+            .update({ guest_key: newKey })
+            .eq('uuid', userId)
+          setGuestKey(newKey)
+        }
       })
   }, [userId])
 
@@ -628,6 +662,23 @@ export default function Home() {
     router.refresh()
   }
 
+  async function copiarEnlace() {
+    if (!guestKey) return
+    await navigator.clipboard.writeText(window.location.origin + '/menu/' + guestKey)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 1500)
+  }
+
+  async function renovarClave() {
+    if (!userId) return
+    const newKey = crypto.randomUUID()
+    await supabase
+      .from('usuarios')
+      .update({ guest_key: newKey })
+      .eq('uuid', userId)
+    setGuestKey(newKey)
+  }
+
   function irSemanaAnterior() {
     setSemanaLunes((prev) => {
       if (!prev) return prev
@@ -745,6 +796,41 @@ export default function Home() {
 
           {/* Refresh + Settings — esquina superior derecha */}
           <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 6 }}>
+            {guestKey && (
+              <div style={{ position: 'relative' }}>
+                {popoverShare && (
+                  <div onClick={() => setPopoverShare(false)}
+                       style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                )}
+                <button onClick={() => setPopoverShare(v => !v)}
+                        style={{ ...navBtnStyle, zIndex: 11 }}
+                        title="Compartir menú">
+                  <IconShare />
+                </button>
+                {popoverShare && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6,
+                                background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: 8,
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '0.75rem',
+                                minWidth: 240, zIndex: 20, display: 'flex',
+                                flexDirection: 'column', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#888888', overflow: 'hidden',
+                                   textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {window.location.origin}/menu/{guestKey.slice(0, 8)}…
+                    </span>
+                    <button onClick={copiarEnlace}
+                            style={{ background: '#2d7a2d', border: 'none', borderRadius: 6, color: '#fff',
+                                     fontSize: '0.8rem', fontWeight: 600, padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
+                      {copiado ? '¡Copiado!' : 'Copiar enlace'}
+                    </button>
+                    <button onClick={renovarClave}
+                            style={{ background: 'none', border: '1px solid #e0e0e0', borderRadius: 6,
+                                     color: '#888888', fontSize: '0.8rem', padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
+                      Renovar clave
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {esSemanaFuturaOActual && (
               <button
                 onClick={regenerar}
