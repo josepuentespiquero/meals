@@ -171,6 +171,10 @@ export default function RegisterPage() {
           {loading ? 'CREANDO CUENTA...' : 'CREAR CUENTA'}
         </button>
 
+        <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#888888', margin: '12px 0 0', lineHeight: 1.5 }}>
+          Recibirás un email para confirmar tu cuenta antes de poder acceder.
+        </p>
+
         <hr style={{ border: 'none', borderTop: '1px solid #e0e0e0', margin: '24px 0' }} />
 
         <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#888888', margin: 0 }}>
