@@ -261,19 +261,18 @@ export default function Home() {
   // Ajustar stock de una comida en delta (±1) y persistir
   async function actualizarStock(comidaId: string, delta: number) {
     if (!userId || !comidaId) return
+    const newValue = Math.max(0, (stock.get(comidaId) ?? 0) + delta)
     setStock((prev) => {
       const newMap = new Map(prev)
-      const current = prev.get(comidaId) ?? 0
-      const newValue = Math.max(0, current + delta)
       newMap.set(comidaId, newValue)
-      supabase
-        .from('stock_comidas')
-        .upsert(
-          { user_id: userId, comida_id: comidaId, cantidad: newValue, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id,comida_id' }
-        )
       return newMap
     })
+    await supabase
+      .from('stock_comidas')
+      .upsert(
+        { user_id: userId, comida_id: comidaId, cantidad: newValue, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,comida_id' }
+      )
   }
 
   // Marcar/desmarcar validado
