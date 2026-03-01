@@ -10,6 +10,27 @@ type Props = {
   onCambioCategorias: (cats: Categoria[]) => void
 }
 
+function IconSave({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+      <polyline points="17 21 17 13 7 13 7 21"/>
+      <polyline points="7 3 7 8 15 8"/>
+    </svg>
+  )
+}
+
+function IconDelete({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      <line x1="10" y1="11" x2="10" y2="17"/>
+      <line x1="14" y1="11" x2="14" y2="17"/>
+    </svg>
+  )
+}
+
 export default function CategoriasModal({ onClose, onCambioCategorias }: Props) {
   const [filas, setFilas] = useState<FilaEditable[]>([])
   const [guardando, setGuardando] = useState<string | null>(null)
@@ -223,7 +244,7 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Mín</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 48 }}>Máx</th>
                 <th style={{ ...thStyle, textAlign: 'center', width: 60 }}>C/X sem</th>
-                <th style={{ ...thStyle, width: 64 }}></th>
+                <th style={{ ...thStyle, width: 68 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -298,14 +319,14 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
                           <button
                             onClick={() => eliminarFila(fila.id)}
                             disabled={enCurso}
-                            style={btnDeleteConfirmStyle}
+                            style={{ ...btnBase, color: '#dc2626', border: '1px solid #dc2626' }}
                             title="Confirmar eliminación"
                           >
                             ✓
                           </button>
                           <button
                             onClick={() => setConfirmEliminar(null)}
-                            style={btnCancelStyle}
+                            style={{ ...btnBase, color: 'var(--muted)', border: '1px solid var(--border)' }}
                             title="Cancelar"
                           >
                             ✕
@@ -316,18 +337,18 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
                           <button
                             onClick={() => guardarFila(fila)}
                             disabled={enCurso || !fila.nombre.trim()}
-                            style={btnSaveStyle}
+                            style={{ ...btnBase, color: 'var(--accent)', border: '1px solid var(--border)' }}
                             title="Guardar"
                           >
-                            💾
+                            <IconSave />
                           </button>
                           <button
                             onClick={() => setConfirmEliminar(fila.id)}
                             disabled={enCurso}
-                            style={btnDeleteStyle}
+                            style={{ ...btnBase, color: '#dc2626', border: '1px solid var(--border)' }}
                             title="Eliminar"
                           >
-                            🗑
+                            <IconDelete />
                           </button>
                         </div>
                       )}
@@ -409,39 +430,15 @@ const inputNumStyle: React.CSSProperties = {
 }
 
 const btnBase: React.CSSProperties = {
-  width: 24,
-  height: 24,
+  width: 28,
+  height: 28,
   borderRadius: 4,
-  border: 'none',
+  background: 'var(--bg)',
   cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '0.85rem',
+  fontSize: '0.78rem',
   lineHeight: 1,
-}
-
-const btnSaveStyle: React.CSSProperties = {
-  ...btnBase,
-  background: 'var(--accent)',
-  color: '#fff',
-}
-
-const btnDeleteStyle: React.CSSProperties = {
-  ...btnBase,
-  background: '#dc2626',
-  color: '#fff',
-}
-
-const btnDeleteConfirmStyle: React.CSSProperties = {
-  ...btnBase,
-  background: '#dc2626',
-  color: '#fff',
-}
-
-const btnCancelStyle: React.CSSProperties = {
-  ...btnBase,
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  color: 'var(--muted)',
+  flexShrink: 0,
 }
