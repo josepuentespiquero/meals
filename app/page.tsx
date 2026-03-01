@@ -12,6 +12,7 @@ import {
   getDiasSemana,
   generarSugerencias,
   recalcularSugerencias,
+  sugerirComidas,
 } from '@/lib/suggest'
 
 const DIAS_NOMBRE = ['', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO']
@@ -217,17 +218,26 @@ export default function Home() {
         })),
     }))
 
-    // Generar sugerencias
+    // Generar sugerencias de categoría
     const sugerencias = generarSugerencias(categorias, [], historial, semanaISO)
 
-    // Construir filas para los 7 días
+    // Construir input para sugerir comidas (todos los días, sin validados aún)
     const diasSemana = getDiasSemana(semanaLunes)
+    const diasParaComida = diasSemana.map(({ diaSemana }) => ({
+      dia_semana: diaSemana,
+      categoria_id: sugerencias.get(diaSemana) ?? null,
+      validado: false,
+      comida_id: null,
+    }))
+    const sugsComida = sugerirComidas(diasParaComida, [], comidas, stock)
+
+    // Construir filas para los 7 días
     const filas = diasSemana.map(({ fecha, diaSemana }) => ({
       dia_semana: diaSemana,
       dia_fecha: toISODate(fecha),
       semana_inicio: semanaISO,
       categoria_id: sugerencias.get(diaSemana) ?? null,
-      comida_id: null,
+      comida_id: sugsComida.get(diaSemana) ?? null,
       validado: false,
       user_id: userId,
     }))
@@ -370,19 +380,42 @@ export default function Home() {
       diaSemana + 1
     )
 
+    // Aplicar nuevas categorías a días futuros no validados
+    const diasConNuevasCats = diasActualizados.map((d) => {
+      if (d.dia_semana > diaSemana && !d.validado && nuevasSugerencias.has(d.dia_semana)) {
+        return { ...d, categoria_id: nuevasSugerencias.get(d.dia_semana)!, comida_id: null }
+      }
+      return d
+    })
+
+    // Sugerir comidas para días futuros no validados
+    // Fijas = validados + días anteriores no validados (sus comidas se excluyen del pool)
+    const sugsComida = sugerirComidas(
+      diasConNuevasCats
+        .filter((d) => d.dia_semana > diaSemana && !d.validado)
+        .map((d) => ({ dia_semana: d.dia_semana, categoria_id: d.categoria_id })),
+      diasConNuevasCats
+        .filter((d) => d.validado || d.dia_semana <= diaSemana)
+        .map((d) => ({ comida_id: d.comida_id ?? null })),
+      comidas,
+      stock
+    )
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const actualizaciones: Promise<any>[] = []
-    const diasFinales = diasActualizados.map((d) => {
-      if (d.dia_semana > diaSemana && !d.validado && nuevasSugerencias.has(d.dia_semana)) {
-        const newCat = nuevasSugerencias.get(d.dia_semana)!
+    const diasFinales = diasConNuevasCats.map((d) => {
+      if (d.dia_semana > diaSemana && !d.validado) {
+        const newComida = sugsComida.get(d.dia_semana) ?? null
         if (d.id) {
           actualizaciones.push(
             Promise.resolve(
-              supabase.from('semana_dias').update({ categoria_id: newCat }).eq('id', d.id)
+              supabase.from('semana_dias')
+                .update({ categoria_id: d.categoria_id, comida_id: newComida })
+                .eq('id', d.id)
             )
           )
         }
-        return { ...d, categoria_id: newCat }
+        return { ...d, comida_id: newComida }
       }
       return d
     })
@@ -520,19 +553,41 @@ export default function Home() {
       1
     )
 
+    // Aplicar nuevas categorías a días no validados
+    const diasConNuevasCats = dias.map((d) => {
+      if (!d.validado && nuevasSugerencias.has(d.dia_semana)) {
+        return { ...d, categoria_id: nuevasSugerencias.get(d.dia_semana)! }
+      }
+      return d
+    })
+
+    // Sugerir comidas para días no validados; los validados son fijos (excluyen su comida)
+    const sugsComida = sugerirComidas(
+      diasConNuevasCats
+        .filter((d) => !d.validado)
+        .map((d) => ({ dia_semana: d.dia_semana, categoria_id: d.categoria_id })),
+      diasConNuevasCats
+        .filter((d) => d.validado)
+        .map((d) => ({ comida_id: d.comida_id ?? null })),
+      comidas,
+      stock
+    )
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const actualizaciones: Promise<any>[] = []
-    const diasActualizados = dias.map((d) => {
-      if (!d.validado && nuevasSugerencias.has(d.dia_semana)) {
-        const newCat = nuevasSugerencias.get(d.dia_semana)!
+    const diasActualizados = diasConNuevasCats.map((d) => {
+      if (!d.validado) {
+        const newComida = sugsComida.get(d.dia_semana) ?? null
         if (d.id) {
           actualizaciones.push(
             Promise.resolve(
-              supabase.from('semana_dias').update({ categoria_id: newCat }).eq('id', d.id)
+              supabase.from('semana_dias')
+                .update({ categoria_id: d.categoria_id, comida_id: newComida })
+                .eq('id', d.id)
             )
           )
         }
-        return { ...d, categoria_id: newCat }
+        return { ...d, comida_id: newComida }
       }
       return d
     })
@@ -759,6 +814,7 @@ export default function Home() {
                   key={dia.dia_semana}
                   style={{
                     position: 'relative',
+                    zIndex: popoverDia === dia.dia_semana ? 2 : 1,
                     background: esHoy ? 'var(--accent-bg)' : 'var(--surface)',
                     border: `1px solid ${esHoy ? 'var(--accent)' : 'var(--border)'}`,
                     borderLeft: esHoy ? '4px solid var(--accent)' : `1px solid var(--border)`,

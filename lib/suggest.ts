@@ -1,4 +1,4 @@
-import type { Categoria, SemanaDia } from './supabase'
+import type { Categoria, Comida, SemanaDia } from './supabase'
 
 /**
  * Devuelve el lunes de la semana que contiene `date`.
@@ -31,6 +31,81 @@ export function getDiasSemana(lunes: Date): Array<{ fecha: Date; diaSemana: numb
     fecha.setDate(lunes.getDate() + i)
     return { fecha, diaSemana: i + 1 } // 1=lun ... 7=dom
   })
+}
+
+/**
+ * Propone una comida para cada día en `pendientes`, priorizando inventario
+ * y nunca repitiendo comida automáticamente dentro de la semana.
+ *
+ * @param pendientes  Días que necesitan sugerencia (a los que se asignará comida).
+ * @param fijas       Comidas ya fijadas en otros días (validados O no validados que
+ *                    se conservan tal cual). Sus comida_id se excluyen del pool.
+ * @param comidas     Catálogo completo de comidas.
+ * @param stock       Mapa comida_id → cantidad en inventario.
+ *
+ * Prioridad:
+ *   1. Comidas con stock > 0 (mayor stock primero).
+ *   2. Comidas sin stock (alfabético).
+ *   3. null ("Especificar comida") si se agotan las únicas disponibles.
+ */
+export function sugerirComidas(
+  pendientes: Array<{ dia_semana: number; categoria_id: string | null }>,
+  fijas: Array<{ comida_id: string | null }>,
+  comidas: Comida[],
+  stock: Map<string, number>
+): Map<number, string | null> {
+  const resultado = new Map<number, string | null>()
+
+  // Conjunto global de comidas ya usadas (de todos los días fijos)
+  const usadasGlobal = new Set<string>(
+    fijas.map((f) => f.comida_id).filter((id): id is string => Boolean(id))
+  )
+
+  // Agrupar pendientes por categoría
+  const porCategoria = new Map<string, number[]>()
+  for (const d of pendientes) {
+    if (!d.categoria_id) {
+      resultado.set(d.dia_semana, null)
+      continue
+    }
+    const lista = porCategoria.get(d.categoria_id) ?? []
+    lista.push(d.dia_semana)
+    porCategoria.set(d.categoria_id, lista)
+  }
+
+  // Para cada categoría, asignar comidas únicas a sus días pendientes
+  // Llevamos un set de usadas que crece conforme asignamos, para evitar
+  // repetición entre los propios días pendientes de la misma categoría.
+  const usadasAsignadas = new Set<string>(usadasGlobal)
+
+  for (const [catId, diasCat] of porCategoria) {
+    const comidasCat = comidas.filter((c) => c.categoria_id === catId)
+
+    // Disponibles = no usadas (ni por días fijos ni por otras asignaciones previas)
+    const disponibles = comidasCat.filter((c) => !usadasAsignadas.has(c.id))
+
+    const conStock = disponibles
+      .filter((c) => (stock.get(c.id) ?? 0) > 0)
+      .sort((a, b) => (stock.get(b.id) ?? 0) - (stock.get(a.id) ?? 0))
+    const sinStock = disponibles
+      .filter((c) => (stock.get(c.id) ?? 0) === 0)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+
+    const ordenadas = [...conStock, ...sinStock]
+
+    const pendientesOrdenados = [...diasCat].sort((a, b) => a - b)
+    for (let i = 0; i < pendientesOrdenados.length; i++) {
+      if (i < ordenadas.length) {
+        const comida = ordenadas[i]
+        resultado.set(pendientesOrdenados[i], comida.id)
+        usadasAsignadas.add(comida.id) // evitar repetición en otras categorías también
+      } else {
+        resultado.set(pendientesOrdenados[i], null)
+      }
+    }
+  }
+
+  return resultado
 }
 
 type DiaConCategoria = {
