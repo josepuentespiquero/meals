@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { supabase, type Categoria, type SemanaDia, type StockCategoria } from '@/lib/supabase'
+import { supabase, type Categoria, type Comida, type SemanaDia, type StockComida } from '@/lib/supabase'
 import CategoriasModal from './components/CategoriasModal'
 import ComidasModal from './components/ComidasModal'
 import InventarioModal from './components/InventarioModal'
@@ -72,11 +72,13 @@ type DiaState = {
   dia_semana: number
   dia_fecha: string
   categoria_id: string | null
+  comida_id: string | null
   validado: boolean
 }
 
 export default function Home() {
   const [categorias, setCategorias] = useState<Categoria[]>([])
+  const [comidas, setComidas] = useState<Comida[]>([])
   const [semanaLunes, setSemanaLunes] = useState<Date | null>(null)
   const [hoyISO, setHoyISO] = useState<string | null>(null)
   const [dias, setDias] = useState<DiaState[]>([])
@@ -120,16 +122,28 @@ export default function Home() {
       })
   }, [userId])
 
+  // Cargar comidas cuando hay userId
+  useEffect(() => {
+    if (!userId) return
+    supabase
+      .from('comidas')
+      .select('*')
+      .eq('user_id', userId)
+      .then(({ data }) => {
+        if (data) setComidas(data as Comida[])
+      })
+  }, [userId])
+
   // Cargar stock cuando hay userId
   useEffect(() => {
     if (!userId) return
     supabase
-      .from('stock_categorias')
-      .select('categoria_id, cantidad')
+      .from('stock_comidas')
+      .select('comida_id, cantidad')
       .eq('user_id', userId)
       .then(({ data }) => {
         if (data) setStock(new Map(
-          (data as StockCategoria[]).map((r) => [r.categoria_id, r.cantidad])
+          (data as StockComida[]).map((r) => [r.comida_id, r.cantidad])
         ))
       })
   }, [userId])
@@ -166,6 +180,7 @@ export default function Home() {
           dia_semana: d.dia_semana,
           dia_fecha: d.dia_fecha,
           categoria_id: d.categoria_id,
+          comida_id: d.comida_id ?? null,
           validado: d.validado,
         }))
       )
@@ -211,6 +226,7 @@ export default function Home() {
       dia_fecha: toISODate(fecha),
       semana_inicio: semanaISO,
       categoria_id: sugerencias.get(diaSemana) ?? null,
+      comida_id: null,
       validado: false,
       user_id: userId,
     }))
@@ -228,6 +244,7 @@ export default function Home() {
           dia_semana: d.dia_semana,
           dia_fecha: d.dia_fecha,
           categoria_id: d.categoria_id,
+          comida_id: d.comida_id ?? null,
           validado: d.validado,
         }))
       )
@@ -240,18 +257,18 @@ export default function Home() {
     cargarSemana()
   }, [cargarSemana])
 
-  // Ajustar stock de una categoría en delta (±1) y persistir
-  async function actualizarStock(catId: string, delta: number) {
-    if (!userId || !catId) return
+  // Ajustar stock de una comida en delta (±1) y persistir
+  async function actualizarStock(comidaId: string, delta: number) {
+    if (!userId || !comidaId) return
     setStock((prev) => {
       const newMap = new Map(prev)
-      const newValue = (prev.get(catId) ?? 0) + delta
-      newMap.set(catId, newValue)
+      const newValue = (prev.get(comidaId) ?? 0) + delta
+      newMap.set(comidaId, newValue)
       supabase
-        .from('stock_categorias')
+        .from('stock_comidas')
         .upsert(
-          { user_id: userId, categoria_id: catId, cantidad: newValue, updated_at: new Date().toISOString() },
-          { onConflict: 'user_id,categoria_id' }
+          { user_id: userId, comida_id: comidaId, cantidad: newValue, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id,comida_id' }
         )
       return newMap
     })
@@ -270,8 +287,8 @@ export default function Home() {
       .update({ validado: nuevoValidado })
       .eq('id', dia.id)
 
-    if (dia.categoria_id) {
-      await actualizarStock(dia.categoria_id, nuevoValidado ? -1 : +1)
+    if (dia.comida_id) {
+      await actualizarStock(dia.comida_id, nuevoValidado ? -1 : +1)
     }
 
     setDias((prev) =>
@@ -289,25 +306,28 @@ export default function Home() {
     if (!dia?.id) return
 
     const anteriorCatId = dia.categoria_id
+    const anteriorComidaId = dia.comida_id
     const anteriorValidado = dia.validado
 
     setGuardando(diaSemana)
 
+    const nuevaComidaId = nuevaCatId !== anteriorCatId ? null : dia.comida_id
+
     await supabase
       .from('semana_dias')
-      .update({ categoria_id: nuevaCatId, validado: true })
+      .update({ categoria_id: nuevaCatId, comida_id: nuevaComidaId, validado: true })
       .eq('id', dia.id)
 
     if (nuevaCatId !== anteriorCatId) {
-      if (anteriorValidado && anteriorCatId) await actualizarStock(anteriorCatId, +1)
-      await actualizarStock(nuevaCatId, -1)
+      if (anteriorValidado && anteriorComidaId) await actualizarStock(anteriorComidaId, +1)
+      // No consumir: aún no hay comida en la nueva categoría
     } else {
-      if (!anteriorValidado) await actualizarStock(nuevaCatId, -1)
+      if (!anteriorValidado && dia.comida_id) await actualizarStock(dia.comida_id, -1)
     }
 
     const diasActualizados = dias.map((d) =>
       d.dia_semana === diaSemana
-        ? { ...d, categoria_id: nuevaCatId, validado: true }
+        ? { ...d, categoria_id: nuevaCatId, comida_id: nuevaComidaId, validado: true }
         : d
     )
 
@@ -435,6 +455,25 @@ export default function Home() {
     }
 
     setDias(diasFinales)
+    setGuardando(null)
+  }
+
+  async function cambiarComida(diaSemana: number, comidaId: string) {
+    const dia = dias.find((d) => d.dia_semana === diaSemana)
+    if (!dia?.id) return
+    const anteriorComidaId = dia.comida_id
+    setGuardando(diaSemana)
+    await supabase
+      .from('semana_dias')
+      .update({ comida_id: comidaId || null })
+      .eq('id', dia.id)
+    if (dia.validado) {
+      if (anteriorComidaId) await actualizarStock(anteriorComidaId, +1)
+      if (comidaId) await actualizarStock(comidaId, -1)
+    }
+    setDias((prev) =>
+      prev.map((d) => d.dia_semana === diaSemana ? { ...d, comida_id: comidaId || null } : d)
+    )
     setGuardando(null)
   }
 
@@ -590,9 +629,10 @@ export default function Home() {
         <InventarioModal
           userId={userId ?? ''}
           categorias={categorias}
+          comidas={comidas}
           stock={stock}
-          onStockChange={(catId, newValue) =>
-            setStock((prev) => { const m = new Map(prev); m.set(catId, newValue); return m })
+          onStockChange={(comidaId, newValue) =>
+            setStock((prev) => { const m = new Map(prev); m.set(comidaId, newValue); return m })
           }
           onClose={() => setInventarioOpen(false)}
         />
@@ -718,13 +758,13 @@ export default function Home() {
                     borderRadius: 8,
                     padding: '0.75rem 1rem',
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     gap: '0.75rem',
                     opacity: esCargando ? 0.6 : 1,
                     transition: 'opacity 0.15s',
                   }}
                 >
-                  <div style={{ minWidth: 110 }}>
+                  <div style={{ minWidth: 110, paddingTop: '0.35rem' }}>
                     <div style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '1.15rem', letterSpacing: '0.06em', color: esHoy ? 'var(--accent)' : 'var(--text)' }}>
                       {DIAS_NOMBRE[dia.dia_semana]}
                     </div>
@@ -733,33 +773,64 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <select
-                    value={dia.categoria_id ?? ''}
-                    onChange={(e) => cambiarCategoria(dia.dia_semana, e.target.value)}
-                    disabled={esCargando}
-                    style={{
-                      flex: 1,
-                      padding: '0.4rem 0.6rem',
-                      border: `1px solid var(--border)`,
-                      borderRadius: 6,
-                      background: 'var(--bg)',
-                      fontFamily: 'var(--font-dm-sans)',
-                      fontSize: '0.9rem',
-                      color: dia.validado ? colorValidado : 'var(--muted)',
-                      fontWeight: dia.validado ? 600 : 400,
-                      cursor: 'pointer',
-                      outline: 'none',
-                    }}
-                  >
-                    {dia.categoria_id === null && <option value="">Sin asignar</option>}
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-                    ))}
-                  </select>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    <select
+                      value={dia.categoria_id ?? ''}
+                      onChange={(e) => cambiarCategoria(dia.dia_semana, e.target.value)}
+                      disabled={esCargando}
+                      style={{
+                        padding: '0.4rem 0.6rem',
+                        border: `1px solid var(--border)`,
+                        borderRadius: 6,
+                        background: 'var(--bg)',
+                        fontFamily: 'var(--font-dm-sans)',
+                        fontSize: '0.9rem',
+                        color: dia.validado ? colorValidado : 'var(--muted)',
+                        fontWeight: dia.validado ? 600 : 400,
+                        cursor: 'pointer',
+                        outline: 'none',
+                        width: '100%',
+                      }}
+                    >
+                      {dia.categoria_id === null && <option value="">Sin asignar</option>}
+                      {categorias.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.nombre}</option>
+                      ))}
+                    </select>
+
+                    {dia.categoria_id && (
+                      <select
+                        value={dia.comida_id ?? ''}
+                        onChange={(e) => cambiarComida(dia.dia_semana, e.target.value)}
+                        disabled={esCargando}
+                        style={{
+                          padding: '0.4rem 0.6rem',
+                          border: `1px solid var(--border)`,
+                          borderRadius: 6,
+                          background: 'var(--bg)',
+                          fontFamily: 'var(--font-dm-sans)',
+                          fontSize: '0.85rem',
+                          color: 'var(--text)',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          width: '100%',
+                        }}
+                      >
+                        <option value="">Sin comida</option>
+                        {comidas
+                          .filter((c) => c.categoria_id === dia.categoria_id)
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>{c.nombre}</option>
+                          ))}
+                      </select>
+                    )}
+                  </div>
 
                   {dia.categoria_id && (() => {
-                    const qty = stock.get(dia.categoria_id) ?? 0
-                    if (qty === 0) return null
+                    const total = comidas
+                      .filter((c) => c.categoria_id === dia.categoria_id)
+                      .reduce((sum, c) => sum + (stock.get(c.id) ?? 0), 0)
+                    if (total === 0) return null
                     return (
                       <span style={{
                         position: 'absolute',
@@ -769,9 +840,9 @@ export default function Home() {
                         fontSize: '0.75rem',
                         fontFamily: 'var(--font-dm-sans)',
                         fontWeight: 600,
-                        color: qty < 0 ? '#dc2626' : 'var(--muted)',
+                        color: total < 0 ? '#dc2626' : 'var(--muted)',
                       }}>
-                        {qty}
+                        {total}
                       </span>
                     )
                   })()}
@@ -794,6 +865,7 @@ export default function Home() {
                       flexShrink: 0,
                       fontSize: '1rem',
                       transition: 'all 0.15s',
+                      marginTop: '0.15rem',
                     }}
                   >
                     {dia.validado ? '✓' : ''}

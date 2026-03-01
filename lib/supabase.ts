@@ -29,15 +29,16 @@ export type SemanaDia = {
   dia_fecha: string
   dia_semana: number
   categoria_id: string | null
+  comida_id: string | null
   validado: boolean
   created_at: string
   user_id: string
 }
 
-export type StockCategoria = {
+export type StockComida = {
   id: string
   user_id: string
-  categoria_id: string
+  comida_id: string
   cantidad: number
   updated_at: string
 }

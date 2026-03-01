@@ -1,59 +1,42 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { supabase, type Comida, type Categoria } from '@/lib/supabase'
 
 type Props = {
   userId: string
   categorias: Categoria[]
+  comidas: Comida[]
   stock: Map<string, number>
-  onStockChange: (catId: string, nuevoAbsoluto: number) => void
+  onStockChange: (comidaId: string, nuevoAbsoluto: number) => void
   onClose: () => void
 }
 
-export default function InventarioModal({ userId, categorias, stock, onStockChange, onClose }: Props) {
-  const [comidas, setComidas] = useState<Comida[]>([])
-  const [comidaSeleccionada, setComidaSeleccionada] = useState<string>('')
+export default function InventarioModal({ userId, categorias, comidas, stock, onStockChange, onClose }: Props) {
+  const [comidaSeleccionada, setComidaSeleccionada] = useState<string>(comidas[0]?.id ?? '')
   const [cantidad, setCantidad] = useState(1)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    supabase
-      .from('comidas')
-      .select('*')
-      .eq('user_id', userId)
-      .order('nombre')
-      .then(({ data, error: err }) => {
-        if (err) setError(err.message)
-        else if (data) {
-          setComidas(data as Comida[])
-          if (data.length > 0) setComidaSeleccionada(data[0].id)
-        }
-      })
-  }, [userId])
-
   async function handleAnadir() {
-    const comida = comidas.find((c) => c.id === comidaSeleccionada)
-    if (!comida?.categoria_id || cantidad === 0) return
+    if (!comidaSeleccionada || cantidad === 0) return
 
     setGuardando(true)
     setError(null)
 
-    const catId = comida.categoria_id
-    const newValue = (stock.get(catId) ?? 0) + cantidad
+    const newValue = (stock.get(comidaSeleccionada) ?? 0) + cantidad
 
     const { error: err } = await supabase
-      .from('stock_categorias')
+      .from('stock_comidas')
       .upsert(
-        { user_id: userId, categoria_id: catId, cantidad: newValue, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,categoria_id' }
+        { user_id: userId, comida_id: comidaSeleccionada, cantidad: newValue, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,comida_id' }
       )
 
     if (err) {
       setError(err.message)
     } else {
-      onStockChange(catId, newValue)
+      onStockChange(comidaSeleccionada, newValue)
       setCantidad(1)
     }
 
@@ -160,16 +143,19 @@ export default function InventarioModal({ userId, categorias, stock, onStockChan
           >
             <thead>
               <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+                <th style={thStyle}>Comida</th>
                 <th style={thStyle}>Categoría</th>
                 <th style={{ ...thStyle, textAlign: 'right', width: 80 }}>Stock</th>
               </tr>
             </thead>
             <tbody>
-              {categorias.map((cat) => {
-                const qty = stock.get(cat.id) ?? 0
+              {comidas.map((c) => {
+                const cat = categorias.find((k) => k.id === c.categoria_id)
+                const qty = stock.get(c.id) ?? 0
                 return (
-                  <tr key={cat.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={tdStyle}>{cat.nombre}</td>
+                  <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={tdStyle}>{c.nombre}</td>
+                    <td style={{ ...tdStyle, color: 'var(--muted)' }}>{cat?.nombre ?? '—'}</td>
                     <td
                       style={{
                         ...tdStyle,
