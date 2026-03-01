@@ -111,6 +111,9 @@ export function generarSugerencias(
   ): Categoria[] {
     const esFinDeSemana = diaSemana >= 6
     return categorias.filter((cat) => {
+      // cada_x_sem=0 significa "no sugerir, solo selección manual"
+      if (cat.cada_x_sem === 0) return false
+
       // Restricción fin de semana
       if (cat.solo_fin_semana && !esFinDeSemana) return false
 
