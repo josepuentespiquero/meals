@@ -354,7 +354,9 @@ export default function Home() {
       for (const d of diasSig) {
         if (!d.validado && nuevasSig.has(d.dia_semana)) {
           actsSig.push(
-            supabase.from('semana_dias').update({ categoria_id: nuevasSig.get(d.dia_semana) }).eq('id', d.id)
+            Promise.resolve(
+              supabase.from('semana_dias').update({ categoria_id: nuevasSig.get(d.dia_semana) }).eq('id', d.id)
+            )
           )
         }
       }
