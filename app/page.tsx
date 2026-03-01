@@ -623,7 +623,13 @@ export default function Home() {
         <ComidasModal
           userId={userId ?? ''}
           categorias={categorias}
-          onClose={() => setComidasOpen(false)}
+          onClose={() => {
+            setComidasOpen(false)
+            if (userId) {
+              supabase.from('comidas').select('*').eq('user_id', userId)
+                .then(({ data }) => { if (data) setComidas(data as Comida[]) })
+            }
+          }}
         />
       )}
       {inventarioOpen && (
