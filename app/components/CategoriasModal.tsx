@@ -315,12 +315,11 @@ export default function CategoriasModal({ onClose, onCambioCategorias }: Props) 
                       <input
                         type="number"
                         value={fila.cada_x_sem}
-                        min={1}
+                        min={0}
                         max={52}
                         onChange={(e) => updateFila(fila.id, 'cada_x_sem', parseInt(e.target.value) || 0)}
                         disabled={enCurso}
                         style={inputNumStyle}
-                        min={0}
                       />
                     </td>
                     <td style={tdStyle}>
