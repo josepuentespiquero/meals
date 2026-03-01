@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase, type Categoria, type SemanaDia } from '@/lib/supabase'
 import CategoriasModal from './components/CategoriasModal'
+import ComidasModal from './components/ComidasModal'
 import { useRouter } from 'next/navigation'
 import {
   getLunes,
@@ -19,6 +20,16 @@ function IconSettings({ size = 16 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  )
+}
+
+function IconUtensils({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/>
+      <path d="M7 2v20"/>
+      <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>
     </svg>
   )
 }
@@ -60,6 +71,7 @@ export default function Home() {
   const [loading, setLoading] = useState<'cargando' | 'generando' | false>('cargando')
   const [guardando, setGuardando] = useState<number | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [comidasOpen, setComidasOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -508,6 +520,13 @@ export default function Home() {
           onCambioCategorias={(cats) => setCategorias(cats)}
         />
       )}
+      {comidasOpen && (
+        <ComidasModal
+          userId={userId ?? ''}
+          categorias={categorias}
+          onClose={() => setComidasOpen(false)}
+        />
+      )}
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Cabecera */}
         <header style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative' }}>
@@ -540,6 +559,14 @@ export default function Home() {
                 <IconRefresh />
               </button>
             )}
+            <button
+              onClick={() => setComidasOpen(true)}
+              style={navBtnStyle}
+              aria-label="Maestro de comidas"
+              title="Comidas"
+            >
+              <IconUtensils />
+            </button>
             <button
               onClick={() => setSettingsOpen(true)}
               style={navBtnStyle}

@@ -16,6 +16,13 @@ export type Categoria = {
   user_id: string
 }
 
+export type Comida = {
+  id: string
+  nombre: string
+  categoria_id: string | null
+  user_id: string
+}
+
 export type SemanaDia = {
   id: string
   semana_inicio: string
