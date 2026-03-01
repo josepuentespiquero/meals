@@ -84,14 +84,10 @@ export function sugerirComidas(
     // Disponibles = no usadas (ni por días fijos ni por otras asignaciones previas)
     const disponibles = comidasCat.filter((c) => !usadasAsignadas.has(c.id))
 
-    const conStock = disponibles
+    // Solo se sugieren comidas con stock; si se agotan → null ("Especificar comida")
+    const ordenadas = disponibles
       .filter((c) => (stock.get(c.id) ?? 0) > 0)
       .sort((a, b) => (stock.get(b.id) ?? 0) - (stock.get(a.id) ?? 0))
-    const sinStock = disponibles
-      .filter((c) => (stock.get(c.id) ?? 0) === 0)
-      .sort((a, b) => a.nombre.localeCompare(b.nombre))
-
-    const ordenadas = [...conStock, ...sinStock]
 
     const pendientesOrdenados = [...diasCat].sort((a, b) => a - b)
     for (let i = 0; i < pendientesOrdenados.length; i++) {
