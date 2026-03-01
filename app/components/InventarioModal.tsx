@@ -65,7 +65,7 @@ export default function InventarioModal({ userId, categorias, comidas, stock, on
           border: '1px solid var(--border)',
           borderRadius: 12,
           width: '100%',
-          maxWidth: 420,
+          maxWidth: 560,
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
@@ -131,6 +131,63 @@ export default function InventarioModal({ userId, categorias, comidas, stock, on
           </div>
         )}
 
+        {/* Formulario añadir — arriba */}
+        <div
+          style={{
+            padding: '0.75rem 1.25rem',
+            borderBottom: '1px solid var(--border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <select
+              value={comidaSeleccionada}
+              onChange={(e) => setComidaSeleccionada(e.target.value)}
+              disabled={guardando}
+              style={{ ...selectStyle, flex: 1 }}
+            >
+              {comidas.map((c) => {
+                const cat = categorias.find((k) => k.id === c.categoria_id)
+                return (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}{cat ? ` (${cat.nombre})` : ''}
+                  </option>
+                )
+              })}
+            </select>
+            <input
+              type="number"
+              value={cantidad}
+              onChange={(e) => setCantidad(parseInt(e.target.value) || 0)}
+              disabled={guardando}
+              style={{ ...selectStyle, width: 70, flex: 'none' }}
+              min={1}
+            />
+          </div>
+          <button
+            onClick={handleAnadir}
+            disabled={guardando || !comidaSeleccionada || cantidad === 0}
+            style={{
+              width: '100%',
+              background: 'none',
+              border: '1px dashed var(--border)',
+              borderRadius: 6,
+              padding: '0.45rem',
+              cursor: guardando || !comidaSeleccionada || cantidad === 0 ? 'default' : 'pointer',
+              fontFamily: 'var(--font-dm-sans)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color: 'var(--accent)',
+              opacity: guardando ? 0.6 : 1,
+              textAlign: 'center',
+            }}
+          >
+            + Añadir
+          </button>
+        </div>
+
         {/* Tabla de stock */}
         <div style={{ overflowY: 'auto', flex: 1 }}>
           <table
@@ -149,7 +206,11 @@ export default function InventarioModal({ userId, categorias, comidas, stock, on
               </tr>
             </thead>
             <tbody>
-              {comidas.map((c) => {
+              {[...comidas].sort((a, b) => {
+                const catA = categorias.find((k) => k.id === a.categoria_id)?.nombre ?? ''
+                const catB = categorias.find((k) => k.id === b.categoria_id)?.nombre ?? ''
+                return catA.localeCompare(catB) || a.nombre.localeCompare(b.nombre)
+              }).map((c) => {
                 const cat = categorias.find((k) => k.id === c.categoria_id)
                 const qty = stock.get(c.id) ?? 0
                 return (
@@ -171,61 +232,6 @@ export default function InventarioModal({ userId, categorias, comidas, stock, on
               })}
             </tbody>
           </table>
-        </div>
-
-        {/* Footer: añadir stock */}
-        <div
-          style={{
-            padding: '1rem 1.25rem',
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
-          }}
-        >
-          <select
-            value={comidaSeleccionada}
-            onChange={(e) => setComidaSeleccionada(e.target.value)}
-            disabled={guardando}
-            style={selectStyle}
-          >
-            {comidas.map((c) => {
-              const cat = categorias.find((k) => k.id === c.categoria_id)
-              return (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}{cat ? ` (${cat.nombre})` : ''}
-                </option>
-              )
-            })}
-          </select>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input
-              type="number"
-              value={cantidad}
-              onChange={(e) => setCantidad(parseInt(e.target.value) || 0)}
-              disabled={guardando}
-              style={{ ...selectStyle, flex: 1 }}
-              min={1}
-            />
-            <button
-              onClick={handleAnadir}
-              disabled={guardando || !comidaSeleccionada || cantidad === 0}
-              style={{
-                background: 'var(--accent)',
-                border: 'none',
-                borderRadius: 6,
-                padding: '0.4rem 1rem',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-dm-sans)',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: '#fff',
-                opacity: guardando ? 0.6 : 1,
-              }}
-            >
-              Añadir
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -253,7 +259,6 @@ const selectStyle: React.CSSProperties = {
   fontSize: '0.85rem',
   color: 'var(--text)',
   background: 'var(--bg)',
-  width: '100%',
   outline: 'none',
   cursor: 'pointer',
 }

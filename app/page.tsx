@@ -816,7 +816,7 @@ export default function Home() {
                           width: '100%',
                         }}
                       >
-                        <option value="">Sin comida</option>
+                        <option value="">Especificar comida</option>
                         {comidas
                           .filter((c) => c.categoria_id === dia.categoria_id)
                           .map((c) => (
