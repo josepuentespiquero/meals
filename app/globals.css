@@ -8,17 +8,12 @@
   --muted: #888888;
   --accent: #2d7a2d;
   --accent-bg: #f0f7f0;
-}
-
-@theme inline {
-  --font-bebas: var(--font-bebas);
-  --font-body: var(--font-dm-sans);
-  --color-accent: var(--accent);
-  --color-muted: var(--muted);
+  --font-bebas: 'Bebas Neue', sans-serif;
+  --font-dm-sans: 'DM Sans', Arial, sans-serif;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-dm-sans), Arial, sans-serif;
+  font-family: var(--font-dm-sans);
 }
