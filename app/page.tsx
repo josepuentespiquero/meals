@@ -75,6 +75,7 @@ type DiaState = {
   categoria_id: string | null
   comida_id: string | null
   validado: boolean
+  stockConsumed: boolean // si se descontó stock real al validar
 }
 
 export default function Home() {
@@ -184,6 +185,7 @@ export default function Home() {
           categoria_id: d.categoria_id,
           comida_id: d.comida_id ?? null,
           validado: d.validado,
+          stockConsumed: d.validado, // si ya venía validado asumimos que consumió stock
         }))
       )
       setLoading(false)
@@ -257,6 +259,7 @@ export default function Home() {
           categoria_id: d.categoria_id,
           comida_id: d.comida_id ?? null,
           validado: d.validado,
+          stockConsumed: false,
         }))
       )
     }
@@ -298,13 +301,21 @@ export default function Home() {
       .update({ validado: nuevoValidado })
       .eq('id', dia.id)
 
+    let stockConsumed = dia.stockConsumed
     if (dia.comida_id) {
-      await actualizarStock(dia.comida_id, nuevoValidado ? -1 : +1)
+      if (nuevoValidado) {
+        const currentStock = stock.get(dia.comida_id) ?? 0
+        stockConsumed = currentStock > 0
+        if (stockConsumed) await actualizarStock(dia.comida_id, -1)
+      } else {
+        if (dia.stockConsumed) await actualizarStock(dia.comida_id, +1)
+        stockConsumed = false
+      }
     }
 
     setDias((prev) =>
       prev.map((d) =>
-        d.dia_semana === diaSemana ? { ...d, validado: nuevoValidado } : d
+        d.dia_semana === diaSemana ? { ...d, validado: nuevoValidado, stockConsumed } : d
       )
     )
     setGuardando(null)
@@ -329,16 +340,23 @@ export default function Home() {
       .update({ categoria_id: nuevaCatId, comida_id: nuevaComidaId, validado: true })
       .eq('id', dia.id)
 
+    let stockConsumed = false
     if (nuevaCatId !== anteriorCatId) {
-      if (anteriorValidado && anteriorComidaId) await actualizarStock(anteriorComidaId, +1)
+      if (anteriorValidado && anteriorComidaId && dia.stockConsumed) await actualizarStock(anteriorComidaId, +1)
       // No consumir: aún no hay comida en la nueva categoría
     } else {
-      if (!anteriorValidado && dia.comida_id) await actualizarStock(dia.comida_id, -1)
+      if (!anteriorValidado && dia.comida_id) {
+        const currentStock = stock.get(dia.comida_id) ?? 0
+        stockConsumed = currentStock > 0
+        if (stockConsumed) await actualizarStock(dia.comida_id, -1)
+      } else if (anteriorValidado) {
+        stockConsumed = dia.stockConsumed
+      }
     }
 
     const diasActualizados = dias.map((d) =>
       d.dia_semana === diaSemana
-        ? { ...d, categoria_id: nuevaCatId, comida_id: nuevaComidaId, validado: true }
+        ? { ...d, categoria_id: nuevaCatId, comida_id: nuevaComidaId, validado: true, stockConsumed }
         : d
     )
 
@@ -501,12 +519,19 @@ export default function Home() {
       .from('semana_dias')
       .update({ comida_id: comidaId || null })
       .eq('id', dia.id)
+    let stockConsumed = dia.stockConsumed
     if (dia.validado) {
-      if (anteriorComidaId) await actualizarStock(anteriorComidaId, +1)
-      if (comidaId) await actualizarStock(comidaId, -1)
+      if (anteriorComidaId && dia.stockConsumed) await actualizarStock(anteriorComidaId, +1)
+      if (comidaId) {
+        const currentStock = stock.get(comidaId) ?? 0
+        stockConsumed = currentStock > 0
+        if (stockConsumed) await actualizarStock(comidaId, -1)
+      } else {
+        stockConsumed = false
+      }
     }
     setDias((prev) =>
-      prev.map((d) => d.dia_semana === diaSemana ? { ...d, comida_id: comidaId || null } : d)
+      prev.map((d) => d.dia_semana === diaSemana ? { ...d, comida_id: comidaId || null, stockConsumed } : d)
     )
     setGuardando(null)
   }
