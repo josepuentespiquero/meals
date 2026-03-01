@@ -868,10 +868,9 @@ export default function Home() {
                         disabled={esCargando}
                         style={{
                           padding: '0.4rem 0.6rem',
-                          border: `1px solid var(--border)`,
+                          border: !dia.comida_id ? '1px solid #fed7aa' : '1px solid var(--border)',
                           borderRadius: 6,
                           background: !dia.comida_id ? '#fff7ed' : 'var(--bg)',
-                          border: !dia.comida_id ? '1px solid #fed7aa' : '1px solid var(--border)',
                           fontFamily: 'var(--font-dm-sans)',
                           fontSize: '0.85rem',
                           color: !dia.comida_id ? '#c2410c' : 'var(--text)',
