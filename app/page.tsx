@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase, type Categoria, type SemanaDia } from '@/lib/supabase'
 import {
   getLunes,
@@ -269,6 +269,37 @@ export default function Home() {
     })
   }
 
+  // Días validados que incumplen alguna restricción → se pintan en naranja
+  const violaciones = useMemo(() => {
+    const set = new Set<number>()
+
+    // solo_fin_semana en día de entre semana
+    for (const dia of dias) {
+      if (!dia.validado || !dia.categoria_id) continue
+      const cat = categorias.find((c) => c.id === dia.categoria_id)
+      if (cat?.solo_fin_semana && dia.dia_semana < 6) set.add(dia.dia_semana)
+    }
+
+    // frec_sem_max excedido: las apariciones que sobran (ordenadas por día) son violación
+    const porCategoria = new Map<string, number[]>()
+    for (const dia of dias) {
+      if (!dia.validado || !dia.categoria_id) continue
+      const lista = porCategoria.get(dia.categoria_id) ?? []
+      lista.push(dia.dia_semana)
+      porCategoria.set(dia.categoria_id, lista)
+    }
+    for (const [catId, diasCat] of porCategoria) {
+      const cat = categorias.find((c) => c.id === catId)
+      if (!cat) continue
+      const ordenados = [...diasCat].sort((a, b) => a - b)
+      for (let i = cat.frec_sem_max; i < ordenados.length; i++) {
+        set.add(ordenados[i])
+      }
+    }
+
+    return set
+  }, [dias, categorias])
+
   // Estas comparaciones solo se evalúan cuando semanaLunes ya está inicializado (cliente)
   const semanaActualISO = hoyISO ? toISODate(getLunes(new Date(hoyISO))) : null
   const esSemanaActual = semanaLunes && semanaActualISO
@@ -343,6 +374,8 @@ export default function Home() {
             {dias.map((dia) => {
               const esHoy = dia.dia_fecha === hoyISO
               const esCargando = guardando === dia.dia_semana
+              const esViolacion = violaciones.has(dia.dia_semana)
+              const colorValidado = esViolacion ? '#d97706' : 'var(--accent)'
 
               return (
                 <li
@@ -390,7 +423,7 @@ export default function Home() {
                       background: 'var(--bg)',
                       fontFamily: 'var(--font-dm-sans)',
                       fontSize: '0.9rem',
-                      color: dia.validado ? 'var(--accent)' : 'var(--muted)',
+                      color: dia.validado ? colorValidado : 'var(--muted)',
                       fontWeight: dia.validado ? 600 : 400,
                       cursor: 'pointer',
                       outline: 'none',
@@ -415,8 +448,8 @@ export default function Home() {
                       width: 32,
                       height: 32,
                       borderRadius: '50%',
-                      border: `2px solid ${dia.validado ? 'var(--accent)' : 'var(--border)'}`,
-                      background: dia.validado ? 'var(--accent)' : 'var(--bg)',
+                      border: `2px solid ${dia.validado ? colorValidado : 'var(--border)'}`,
+                      background: dia.validado ? colorValidado : 'var(--bg)',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
