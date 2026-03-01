@@ -29,9 +29,11 @@ export default async function MenuPage({
 
   const userId = guestRow.id
 
-  // Calcular semana actual
-  const lunes = getLunes(new Date())
+  // Calcular semana actual y fecha de hoy
+  const hoy = new Date()
+  const lunes = getLunes(hoy)
   const semanaInicio = toISODate(lunes)
+  const hoyISO = toISODate(hoy)
 
   // Fetch de datos (admin bypasses RLS)
   const [{ data: dias }, { data: categorias }, { data: comidas }] = await Promise.all([
@@ -55,6 +57,8 @@ export default async function MenuPage({
           const dia = (dias ?? []).find((d: SemanaDia) => d.dia_semana === ds)
           const cat = (categorias ?? []).find((c: Categoria) => c.id === dia?.categoria_id)
           const comida = (comidas ?? []).find((c: Comida) => c.id === dia?.comida_id)
+          const esHoy = dia?.dia_fecha === hoyISO
+          const esPasado = dia?.dia_fecha != null && dia.dia_fecha < hoyISO
           return (
             <li
               key={ds}
@@ -62,13 +66,19 @@ export default async function MenuPage({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                border: '1px solid #e0e0e0',
+                border: esHoy ? '1px solid #2d7a2d' : '1px solid #e0e0e0',
                 borderRadius: 8,
                 padding: '0.75rem 1rem',
                 background: '#ffffff',
               }}
             >
-              <span style={{ width: 90, fontWeight: 600, color: '#888888', fontSize: '0.85rem', flexShrink: 0 }}>
+              <span style={{
+                width: 90,
+                fontWeight: esHoy ? 700 : 600,
+                color: esHoy ? '#2d7a2d' : '#888888',
+                fontSize: '0.85rem',
+                flexShrink: 0,
+              }}>
                 {DIAS[ds - 1]}
               </span>
               <div style={{ flex: 1 }}>
@@ -76,12 +86,7 @@ export default async function MenuPage({
                   <div style={{ fontSize: '0.78rem', color: '#888888' }}>{cat.nombre}</div>
                 )}
                 {comida ? (
-                  <div
-                    style={{
-                      fontWeight: dia?.validado ? 700 : 400,
-                      color: dia?.validado ? '#2d7a2d' : '#1a1a1a',
-                    }}
-                  >
+                  <div style={{ color: esPasado ? '#888888' : '#1a1a1a' }}>
                     {comida.nombre}
                   </div>
                 ) : cat ? (
