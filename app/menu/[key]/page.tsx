@@ -66,33 +66,34 @@ export default async function MenuPage({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '1rem',
-                border: esHoy ? '1px solid #2d7a2d' : '1px solid #e0e0e0',
+                border: `1px solid ${esHoy ? '#2d7a2d' : '#e0e0e0'}`,
+                borderLeft: esHoy ? '4px solid #2d7a2d' : '1px solid #e0e0e0',
                 borderRadius: 8,
                 padding: '0.75rem 1rem',
-                background: '#ffffff',
+                background: esHoy ? '#f0f7f0' : '#ffffff',
               }}
             >
               <span style={{
                 width: 90,
                 fontWeight: esHoy ? 700 : 600,
                 color: esHoy ? '#2d7a2d' : '#888888',
-                fontSize: '0.85rem',
+                fontSize: '1.05rem',
                 flexShrink: 0,
               }}>
                 {DIAS[ds - 1]}
               </span>
               <div style={{ flex: 1 }}>
                 {cat && (
-                  <div style={{ fontSize: '0.78rem', color: '#888888' }}>{cat.nombre}</div>
+                  <div style={{ fontSize: '0.95rem', color: '#888888' }}>{cat.nombre}</div>
                 )}
                 {comida ? (
-                  <div style={{ color: esPasado ? '#888888' : '#1a1a1a' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: esPasado ? '#888888' : '#1a1a1a' }}>
                     {comida.nombre}
                   </div>
                 ) : cat ? (
-                  <div style={{ color: '#888888', fontSize: '0.85rem' }}>Sin especificar</div>
+                  <div style={{ color: '#888888', fontSize: '0.95rem' }}>Sin especificar</div>
                 ) : (
-                  <div style={{ color: '#cccccc', fontSize: '0.85rem' }}>—</div>
+                  <div style={{ color: '#cccccc', fontSize: '0.95rem' }}>—</div>
                 )}
               </div>
             </li>
