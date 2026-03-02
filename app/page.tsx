@@ -15,7 +15,7 @@ import {
   sugerirComidas,
 } from '@/lib/suggest'
 
-const DIAS_NOMBRE = ['', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO']
+const DIAS_NOMBRE = ['', 'LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM']
 
 function IconSettings({ size = 16 }: { size?: number }) {
   return (
@@ -777,110 +777,110 @@ export default function Home() {
       )}
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Cabecera */}
-        <header style={{ marginBottom: '2rem', textAlign: 'center', position: 'relative' }}>
+        <header style={{ marginBottom: '2rem' }}>
 
-          {/* Usuario + logout — esquina superior izquierda */}
-          <div style={{ position: 'absolute', top: 0, left: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-            {userEmail && (
-              <span style={{ fontSize: '0.7rem', color: 'var(--muted)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {userEmail}
-              </span>
-            )}
-            <button
-              onClick={handleLogout}
-              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--muted)', fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', padding: '3px 8px', cursor: 'pointer' }}
-            >
-              Salir
-            </button>
-          </div>
+          {/* Fila: [salir+settings+share] | MEALS | [resuggest+inventario+comidas] */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
 
-          {/* Refresh + Settings — esquina superior derecha */}
-          <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', gap: 6 }}>
-            {guestKey && (
-              <div style={{ position: 'relative' }}>
-                {popoverShare && (
-                  <div onClick={() => setPopoverShare(false)}
-                       style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
-                )}
-                <button onClick={() => setPopoverShare(v => !v)}
-                        style={{ ...navBtnStyle, zIndex: 11 }}
-                        title="Compartir menú">
-                  <IconShare />
-                </button>
-                {popoverShare && (
-                  <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6,
-                                background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: 8,
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '0.75rem',
-                                minWidth: 240, zIndex: 20, display: 'flex',
-                                flexDirection: 'column', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#888888', overflow: 'hidden',
-                                   textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {window.location.origin}/menu/{guestKey.slice(0, 8)}…
-                    </span>
-                    <button onClick={copiarEnlace}
-                            style={{ background: '#2d7a2d', border: 'none', borderRadius: 6, color: '#fff',
-                                     fontSize: '0.8rem', fontWeight: 600, padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
-                      {copiado ? '¡Copiado!' : 'Copiar enlace'}
-                    </button>
-                    <button onClick={renovarClave}
-                            style={{ background: 'none', border: '1px solid #e0e0e0', borderRadius: 6,
-                                     color: '#888888', fontSize: '0.8rem', padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
-                      Renovar clave
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-            {esSemanaFuturaOActual && (
+            {/* Izquierda: salir, settings, share */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button
-                onClick={regenerar}
-                disabled={refreshing || !!loading}
-                style={{ ...navBtnStyle, opacity: refreshing ? 0.5 : 1 }}
-                aria-label="Regenerar sugerencias"
-                title="Regenerar sugerencias"
+                onClick={handleLogout}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--muted)', fontSize: '0.7rem', letterSpacing: '1px', textTransform: 'uppercase', padding: '3px 8px', cursor: 'pointer' }}
               >
-                <IconRefresh />
+                Salir
               </button>
-            )}
-            <button
-              onClick={() => setInventarioOpen(true)}
-              style={navBtnStyle}
-              aria-label="Inventario"
-              title="Inventario"
-            >
-              <IconInventario />
-            </button>
-            <button
-              onClick={() => setComidasOpen(true)}
-              style={navBtnStyle}
-              aria-label="Maestro de comidas"
-              title="Comidas"
-            >
-              <IconUtensils />
-            </button>
-            <button
-              onClick={() => setSettingsOpen(true)}
-              style={navBtnStyle}
-              aria-label="Configuración de categorías"
-              title="Categorías"
-            >
-              <IconSettings />
-            </button>
-          </div>
+              <button
+                onClick={() => setSettingsOpen(true)}
+                style={navBtnStyle}
+                aria-label="Configuración de categorías"
+                title="Categorías"
+              >
+                <IconSettings />
+              </button>
+              {guestKey && (
+                <div style={{ position: 'relative' }}>
+                  {popoverShare && (
+                    <div onClick={() => setPopoverShare(false)}
+                         style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                  )}
+                  <button onClick={() => setPopoverShare(v => !v)}
+                          style={{ ...navBtnStyle, zIndex: 11 }}
+                          title="Compartir menú">
+                    <IconShare />
+                  </button>
+                  {popoverShare && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 6,
+                                  background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: 8,
+                                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '0.75rem',
+                                  minWidth: 240, zIndex: 20, display: 'flex',
+                                  flexDirection: 'column', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#888888', overflow: 'hidden',
+                                     textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {window.location.origin}/menu/{guestKey.slice(0, 8)}…
+                      </span>
+                      <button onClick={copiarEnlace}
+                              style={{ background: '#2d7a2d', border: 'none', borderRadius: 6, color: '#fff',
+                                       fontSize: '0.8rem', fontWeight: 600, padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
+                        {copiado ? '¡Copiado!' : 'Copiar enlace'}
+                      </button>
+                      <button onClick={renovarClave}
+                              style={{ background: 'none', border: '1px solid #e0e0e0', borderRadius: 6,
+                                       color: '#888888', fontSize: '0.8rem', padding: '0.4rem 0.75rem', cursor: 'pointer' }}>
+                        Renovar clave
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <h1
-            style={{
-              fontFamily: 'var(--font-dm-sans)',
-              fontSize: '2.5rem',
-              fontWeight: 800,
-              letterSpacing: 0,
-              color: 'var(--accent)',
-              lineHeight: 1,
-              marginBottom: '1rem',
-            }}
-          >
-            MEALS
-          </h1>
+            {/* Centro: título */}
+            <h1
+              style={{
+                fontFamily: 'var(--font-dm-sans)',
+                fontSize: '2.5rem',
+                fontWeight: 800,
+                letterSpacing: 0,
+                color: 'var(--accent)',
+                lineHeight: 1,
+                margin: 0,
+              }}
+            >
+              MEALS
+            </h1>
+
+            {/* Derecha: resuggest, inventario, comidas */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {esSemanaFuturaOActual && (
+                <button
+                  onClick={regenerar}
+                  disabled={refreshing || !!loading}
+                  style={{ ...navBtnStyle, opacity: refreshing ? 0.5 : 1 }}
+                  aria-label="Regenerar sugerencias"
+                  title="Regenerar sugerencias"
+                >
+                  <IconRefresh />
+                </button>
+              )}
+              <button
+                onClick={() => setInventarioOpen(true)}
+                style={navBtnStyle}
+                aria-label="Inventario"
+                title="Inventario"
+              >
+                <IconInventario />
+              </button>
+              <button
+                onClick={() => setComidasOpen(true)}
+                style={navBtnStyle}
+                aria-label="Maestro de comidas"
+                title="Comidas"
+              >
+                <IconUtensils />
+              </button>
+            </div>
+          </div>
 
           {/* Navegación de semana */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
@@ -1000,114 +1000,116 @@ export default function Home() {
                     )}
                   </div>
 
-                  {dia.categoria_id && (() => {
-                    const comidasCat = comidas.filter((c) => c.categoria_id === dia.categoria_id)
-                    const total = comidasCat.reduce((sum, c) => sum + (stock.get(c.id) ?? 0), 0)
-                    if (total === 0) return null
-                    const isOpen = popoverDia === dia.dia_semana
-                    const comidasConStock = comidasCat
-                      .filter((c) => (stock.get(c.id) ?? 0) > 0)
-                      .sort((a, b) => (stock.get(b.id) ?? 0) - (stock.get(a.id) ?? 0))
-                    return (
-                      <>
-                        {isOpen && (
-                          <div
-                            onClick={() => setPopoverDia(null)}
-                            style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-                          />
-                        )}
-                        <div style={{ position: 'absolute', right: '-2.5rem', top: '50%', transform: 'translateY(-50%)', zIndex: 11 }}>
-                          <button
-                            onClick={() => setPopoverDia(isOpen ? null : dia.dia_semana)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontSize: '1.05rem',
-                              fontFamily: 'var(--font-dm-sans)',
-                              fontWeight: 700,
-                              color: total < 0 ? '#dc2626' : 'var(--muted)',
-                              padding: '0.2rem 0.25rem',
-                              lineHeight: 1,
-                            }}
-                          >
-                            {total}
-                          </button>
-                          {isOpen && comidasConStock.length > 0 && (
-                            <div style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: '100%',
-                              marginTop: 4,
-                              background: 'var(--bg)',
-                              border: '1px solid var(--border)',
-                              borderRadius: 8,
-                              minWidth: 200,
-                              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                              zIndex: 20,
-                              overflow: 'hidden',
-                            }}>
-                              {comidasConStock.map((c, i) => {
-                                const qty = stock.get(c.id) ?? 0
-                                const esSeleccionada = dia.comida_id === c.id
-                                return (
-                                  <button
-                                    key={c.id}
-                                    onClick={() => {
-                                      cambiarComida(dia.dia_semana, c.id)
-                                      setPopoverDia(null)
-                                    }}
-                                    style={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                      width: '100%',
-                                      padding: '0.5rem 0.75rem',
-                                      background: esSeleccionada ? 'var(--accent-bg)' : 'none',
-                                      border: 'none',
-                                      borderBottom: i < comidasConStock.length - 1 ? '1px solid var(--border)' : 'none',
-                                      cursor: 'pointer',
-                                      fontFamily: 'var(--font-dm-sans)',
-                                      fontSize: '0.85rem',
-                                      color: esSeleccionada ? 'var(--accent)' : 'var(--text)',
-                                      textAlign: 'left',
-                                    }}
-                                  >
-                                    <span>{c.nombre}</span>
-                                    <span style={{ fontWeight: 700, color: 'var(--accent)', marginLeft: '1rem' }}>{qty}</span>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )
-                  })()}
+                  {/* Columna derecha: círculo + stock */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <button
+                      onClick={() => toggleValidado(dia.dia_semana)}
+                      disabled={esCargando || !dia.categoria_id}
+                      aria-label={dia.validado ? 'Desvalidar' : 'Validar'}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        border: `2px solid ${dia.validado ? colorValidado : 'var(--border)'}`,
+                        background: dia.validado ? colorValidado : 'var(--bg)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: dia.categoria_id ? 'pointer' : 'default',
+                        flexShrink: 0,
+                        fontSize: '1rem',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {dia.validado ? '✓' : ''}
+                    </button>
 
-                  <button
-                    onClick={() => toggleValidado(dia.dia_semana)}
-                    disabled={esCargando || !dia.categoria_id}
-                    aria-label={dia.validado ? 'Desvalidar' : 'Validar'}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      border: `2px solid ${dia.validado ? colorValidado : 'var(--border)'}`,
-                      background: dia.validado ? colorValidado : 'var(--bg)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: dia.categoria_id ? 'pointer' : 'default',
-                      flexShrink: 0,
-                      fontSize: '1rem',
-                      transition: 'all 0.15s',
-                      marginTop: '0.15rem',
-                    }}
-                  >
-                    {dia.validado ? '✓' : ''}
-                  </button>
+                    {dia.categoria_id && (() => {
+                      const comidasCat = comidas.filter((c) => c.categoria_id === dia.categoria_id)
+                      const total = comidasCat.reduce((sum, c) => sum + (stock.get(c.id) ?? 0), 0)
+                      if (total === 0) return null
+                      const isOpen = popoverDia === dia.dia_semana
+                      const comidasConStock = comidasCat
+                        .filter((c) => (stock.get(c.id) ?? 0) > 0)
+                        .sort((a, b) => (stock.get(b.id) ?? 0) - (stock.get(a.id) ?? 0))
+                      return (
+                        <>
+                          {isOpen && (
+                            <div
+                              onClick={() => setPopoverDia(null)}
+                              style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                            />
+                          )}
+                          <div style={{ position: 'relative', zIndex: 11 }}>
+                            <button
+                              onClick={() => setPopoverDia(isOpen ? null : dia.dia_semana)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                fontFamily: 'var(--font-dm-sans)',
+                                fontWeight: 700,
+                                color: total < 0 ? '#dc2626' : 'var(--muted)',
+                                padding: '0 0.25rem',
+                                lineHeight: 1,
+                              }}
+                            >
+                              {total}
+                            </button>
+                            {isOpen && comidasConStock.length > 0 && (
+                              <div style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: '100%',
+                                marginTop: 4,
+                                background: 'var(--bg)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 8,
+                                minWidth: 200,
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                                zIndex: 20,
+                                overflow: 'hidden',
+                              }}>
+                                {comidasConStock.map((c, i) => {
+                                  const qty = stock.get(c.id) ?? 0
+                                  const esSeleccionada = dia.comida_id === c.id
+                                  return (
+                                    <button
+                                      key={c.id}
+                                      onClick={() => {
+                                        cambiarComida(dia.dia_semana, c.id)
+                                        setPopoverDia(null)
+                                      }}
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        width: '100%',
+                                        padding: '0.5rem 0.75rem',
+                                        background: esSeleccionada ? 'var(--accent-bg)' : 'none',
+                                        border: 'none',
+                                        borderBottom: i < comidasConStock.length - 1 ? '1px solid var(--border)' : 'none',
+                                        cursor: 'pointer',
+                                        fontFamily: 'var(--font-dm-sans)',
+                                        fontSize: '0.85rem',
+                                        color: esSeleccionada ? 'var(--accent)' : 'var(--text)',
+                                        textAlign: 'left',
+                                      }}
+                                    >
+                                      <span>{c.nombre}</span>
+                                      <span style={{ fontWeight: 700, color: 'var(--accent)', marginLeft: '1rem' }}>{qty}</span>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </div>
                 </li>
               )
             })}
