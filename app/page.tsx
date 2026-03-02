@@ -742,7 +742,7 @@ export default function Home() {
     : false
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '2rem 1rem' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', padding: '1rem 1rem' }}>
       {settingsOpen && (
         <CategoriasModal
           userId={userId ?? ''}
@@ -777,10 +777,10 @@ export default function Home() {
       )}
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         {/* Cabecera */}
-        <header style={{ marginBottom: '2rem' }}>
+        <header style={{ marginBottom: '0.75rem' }}>
 
           {/* Fila: [salir+settings+share] | MEALS | [resuggest+inventario+comidas] */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
 
             {/* Izquierda: salir, settings, share */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -938,7 +938,7 @@ export default function Home() {
                     transition: 'opacity 0.15s',
                   }}
                 >
-                  <div style={{ minWidth: 110, paddingTop: '0.35rem' }}>
+                  <div style={{ minWidth: 52, paddingTop: '0.35rem' }}>
                     <div style={{ fontFamily: 'var(--font-dm-sans)', fontSize: '1.15rem', letterSpacing: '0.06em', color: esHoy ? 'var(--accent)' : 'var(--text)' }}>
                       {DIAS_NOMBRE[dia.dia_semana]}
                     </div>
@@ -958,7 +958,7 @@ export default function Home() {
                         borderRadius: 6,
                         background: 'var(--bg)',
                         fontFamily: 'var(--font-dm-sans)',
-                        fontSize: '0.9rem',
+                        fontSize: '1rem',
                         color: dia.validado ? colorValidado : 'var(--muted)',
                         fontWeight: dia.validado ? 600 : 400,
                         cursor: 'pointer',
@@ -983,7 +983,7 @@ export default function Home() {
                           borderRadius: 6,
                           background: !dia.comida_id ? '#fff7ed' : 'var(--bg)',
                           fontFamily: 'var(--font-dm-sans)',
-                          fontSize: '0.85rem',
+                          fontSize: '0.95rem',
                           color: !dia.comida_id ? '#c2410c' : 'var(--text)',
                           cursor: 'pointer',
                           outline: 'none',
@@ -1048,12 +1048,13 @@ export default function Home() {
                                 background: 'none',
                                 border: 'none',
                                 cursor: 'pointer',
-                                fontSize: '0.85rem',
+                                fontSize: '1.3rem',
                                 fontFamily: 'var(--font-dm-sans)',
                                 fontWeight: 700,
                                 color: total < 0 ? '#dc2626' : 'var(--muted)',
                                 padding: '0 0.25rem',
                                 lineHeight: 1,
+                                marginTop: '1.2rem',
                               }}
                             >
                               {total}
