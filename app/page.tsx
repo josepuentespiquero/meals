@@ -979,12 +979,12 @@ export default function Home() {
                         disabled={esCargando}
                         style={{
                           padding: '0.4rem 0.6rem',
-                          border: !dia.comida_id ? '1px solid #fed7aa' : '1px solid var(--border)',
+                          border: (!dia.comida_id || (stock.get(dia.comida_id) ?? 0) === 0) ? '1px solid #fed7aa' : '1px solid var(--border)',
                           borderRadius: 6,
-                          background: !dia.comida_id ? '#fff7ed' : 'var(--bg)',
+                          background: (!dia.comida_id || (stock.get(dia.comida_id) ?? 0) === 0) ? '#fff7ed' : 'var(--bg)',
                           fontFamily: 'var(--font-dm-sans)',
                           fontSize: '0.95rem',
-                          color: !dia.comida_id ? '#c2410c' : 'var(--text)',
+                          color: (!dia.comida_id || (stock.get(dia.comida_id) ?? 0) === 0) ? '#c2410c' : 'var(--text)',
                           cursor: 'pointer',
                           outline: 'none',
                           width: '100%',
