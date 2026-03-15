@@ -37,12 +37,23 @@ export default function ResetPasswordPage() {
   const router = useRouter()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.replace('/login?error=confirmation_failed')
-      } else {
-        setChecking(false)
-      }
+    const params = new URLSearchParams(window.location.search)
+    const tokenHash = params.get('token_hash')
+    const type = params.get('type')
+
+    if (tokenHash && type === 'recovery') {
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(({ error }) => {
+          if (error) router.replace('/login?error=confirmation_failed')
+          else setChecking(false)
+        })
+      return
+    }
+
+    // Sesión ya activa (recarga de página)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setChecking(false)
+      else router.replace('/login?error=confirmation_failed')
     })
   }, [router])
 
